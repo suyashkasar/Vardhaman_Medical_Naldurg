@@ -315,7 +315,7 @@
   .loading-overlay .spin-big { width:40px; height:40px; border:3px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
   .loading-overlay p { font-family:var(--mono); color:var(--text2); font-size:13px; }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -923,6 +923,9 @@
 // ======= SUPABASE SETUP =======
 const SUPABASE_URL = 'https://aiympqxzmcctyrezzicr.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpeW1wcXh6bWNjdHlyZXp6aWNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NTc2MzAsImV4cCI6MjA4OTMzMzYzMH0.OvsT_-AZbx2NPuq5WcP6BY8C9iQC4GWvryy5TwN82lY';
+if (typeof supabase === 'undefined') {
+  document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;flex-direction:column;gap:16px;background:#0d1117;color:#e6edf3"><div style="font-size:32px">💊</div><div style="font-size:18px;font-weight:bold">Vardhaman Medical</div><div style="color:#f85149">Failed to load database library.</div><div style="font-size:13px;color:#8b949e">Please check your internet connection and refresh the page.</div><button onclick="location.reload()" style="margin-top:8px;padding:10px 24px;background:#e8a020;border:none;border-radius:6px;font-weight:bold;cursor:pointer;font-size:14px">🔄 Retry</button></div>';
+}
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let currentUser = null;
 
@@ -1308,28 +1311,21 @@ async function finalizeBill() {
     total,
     payMode: document.getElementById('payMode').value
   };
-  // Deduct stock
-  currentBill.forEach(item => {
+  // Deduct stock and save to Supabase
+  for (const item of currentBill) {
     const med = db.medicines.find(m => m.id === item.medId);
-    if (med) med.qty -= item.qty;
-  });
+    if (med) {
+      med.qty -= item.qty;
+      await saveMedicine(med);
+    }
+  }
   // Increment visits
   if (selectedCustomer) {
     const cust = db.customers.find(c => c.id === selectedCustomer.id);
-    if (cust) cust.visits = (cust.visits || 0) + 1;
-  }
-  db.bills.unshift(bill);
-  db.billCounter++;
-  await saveBill(bill);
-  // Save updated medicine quantities
-  for (const item of currentBill) {
-    const med = db.medicines.find(m => m.id === item.medId);
-    if (med) await saveMedicine(med);
-  }
-  // Save updated customer visits
-  if (selectedCustomer) {
-    const cust = db.customers.find(c => c.id === selectedCustomer.id);
-    if (cust) await saveCustomer(cust);
+    if (cust) {
+      cust.visits = (cust.visits || 0) + 1;
+      await saveCustomer(cust);
+    }
   }
   printBill(bill);
   toast(`Bill ${bill.id} finalized! Total: ${fmt(total)}`, 'success');
@@ -1885,11 +1881,14 @@ async function processCustomerReturn() {
   const refundMode = document.getElementById('retRefundMode').value;
   const notes = document.getElementById('retNotes').value;
 
-  // Update stock — add back returned qty
-  selected.forEach(item => {
+  // Update stock and save to Supabase
+  for (const item of selected) {
     const med = db.medicines.find(m => m.id === item.medId);
-    if (med) med.qty += item.returnQty;
-  });
+    if (med) {
+      med.qty += item.returnQty;
+      await saveMedicine(med);
+    }
+  }
 
   // Update original bill items
   const bill = db.bills.find(b => b.id === selectedReturnBill.id);
@@ -1923,10 +1922,6 @@ async function processCustomerReturn() {
   };
   db.returns.unshift(ret);
   await saveReturn(ret);
-  for (const item of selected) {
-    const med = db.medicines.find(m => m.id === item.medId);
-    if (med) await saveMedicine(med);
-  }
   if (bill) await saveBill(bill);
 
   printReturnReceipt(ret);
@@ -2038,9 +2033,12 @@ async function processSupplierReturn() {
   const notes = document.getElementById('suppRetNotes').value;
   const batch = document.getElementById('suppRetBatch').value;
 
-  // Deduct from stock
+  // Deduct from stock and save
   const med = db.medicines.find(m => m.id === selectedSuppMed.id);
-  if (med) med.qty -= qty;
+  if (med) {
+    med.qty -= qty;
+    await saveMedicine(med);
+  }
 
   const ret = {
     id: 'RET' + String(db.returns.length + 1).padStart(4, '0'),
@@ -2058,8 +2056,6 @@ async function processSupplierReturn() {
   };
   db.returns.unshift(ret);
   await saveReturn(ret);
-  const med = db.medicines.find(m => m.id === selectedSuppMed.id);
-  if (med) await saveMedicine(med);
   toast(`Supplier return recorded! ${qty} units of ${selectedSuppMed.name} deducted from stock.`, 'success');
   // Clear supplier form
   ['suppRetSupplier','suppRetMedSearch','suppRetBatch','suppRetQty','suppRetNotes'].forEach(id => document.getElementById(id).value = '');
@@ -2161,13 +2157,29 @@ document.getElementById('newMedInput')?.addEventListener('keydown', e => { if (e
 // ======= INIT — Check login session =======
 (async () => {
   applyTheme();
-  // Check if already logged in
-  const { data: { session } } = await sb.auth.getSession();
-  if (session && session.user) {
-    await onLoginSuccess(session.user);
-  } else {
+
+  // Safety timeout — if Supabase hangs for 8 seconds, show login anyway
+  const timeout = setTimeout(() => {
     document.getElementById('loadingOverlay').style.display = 'none';
     document.getElementById('loginScreen').style.display = 'flex';
+  }, 8000);
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    clearTimeout(timeout);
+    if (session && session.user) {
+      await onLoginSuccess(session.user);
+    } else {
+      document.getElementById('loadingOverlay').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+  } catch (err) {
+    clearTimeout(timeout);
+    console.error('Supabase init error:', err);
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginError').textContent = 'Connection error. Check your internet and try again.';
+    document.getElementById('loginError').style.display = 'block';
   }
 
   // Listen for auth changes (e.g. logout from another tab)
