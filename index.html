@@ -298,9 +298,80 @@
   .text-green { color: var(--green); }
   .text-red { color: var(--red); }
   .text-dim { color: var(--text2); }
+  /* LOGIN SCREEN */
+  .login-screen { position:fixed; inset:0; background:var(--bg); z-index:999; display:flex; align-items:center; justify-content:center; }
+  .login-box { background:var(--surface); border:1px solid var(--border); border-radius:16px; padding:40px; width:100%; max-width:420px; box-shadow:0 24px 64px rgba(0,0,0,0.4); }
+  .login-logo { text-align:center; margin-bottom:28px; }
+  .login-logo .icon { font-size:48px; margin-bottom:10px; }
+  .login-logo h1 { font-family:var(--head); font-size:22px; font-weight:700; color:var(--text); letter-spacing:0.5px; }
+  .login-logo p { font-size:12px; color:var(--text2); font-family:var(--mono); margin-top:4px; }
+  .login-divider { text-align:center; color:var(--text3); font-size:11px; font-family:var(--mono); margin:16px 0; position:relative; }
+  .login-divider::before { content:''; position:absolute; top:50%; left:0; right:0; height:1px; background:var(--border); }
+  .login-divider span { background:var(--surface); padding:0 10px; position:relative; }
+  .login-error { background:rgba(248,81,73,0.1); border:1px solid rgba(248,81,73,0.3); color:var(--red); border-radius:6px; padding:10px 14px; font-size:13px; margin-bottom:12px; display:none; }
+  .login-spinner { display:inline-block; width:16px; height:16px; border:2px solid rgba(0,0,0,0.3); border-top-color:#000; border-radius:50%; animation:spin 0.6s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading-overlay { position:fixed; inset:0; background:var(--bg); z-index:998; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px; }
+  .loading-overlay .spin-big { width:40px; height:40px; border:3px solid var(--border2); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; }
+  .loading-overlay p { font-family:var(--mono); color:var(--text2); font-size:13px; }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spin-big"></div>
+  <p id="loadingMsg">Connecting to database…</p>
+</div>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="loginScreen" style="display:none">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="icon">💊</div>
+      <h1>VARDHAMAN MEDICAL</h1>
+      <p>NALDURG · PROP: SACHIN VASANTRAO KASAR</p>
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <!-- LOGIN FORM -->
+    <div id="loginForm">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="loginEmail" placeholder="Enter your email" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter your password" autocomplete="current-password">
+      </div>
+      <button class="btn btn-primary btn-full btn-lg" onclick="handleLogin()" id="loginBtn" style="margin-top:4px">
+        🔐 LOGIN
+      </button>
+      <div class="login-divider"><span>First time? Create account below</span></div>
+      <button class="btn btn-ghost btn-full" onclick="showSignup()">📝 Create New Account</button>
+    </div>
+    <!-- SIGNUP FORM -->
+    <div id="signupForm" style="display:none">
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="signupEmail" placeholder="Enter your email">
+      </div>
+      <div class="form-group">
+        <label>Password (min 6 characters)</label>
+        <input type="password" id="signupPassword" placeholder="Create a password">
+      </div>
+      <div class="form-group">
+        <label>Confirm Password</label>
+        <input type="password" id="signupConfirm" placeholder="Repeat your password">
+      </div>
+      <button class="btn btn-success btn-full btn-lg" onclick="handleSignup()" id="signupBtn" style="margin-top:4px">
+        ✅ CREATE ACCOUNT
+      </button>
+      <div class="login-divider"><span>Already have account?</span></div>
+      <button class="btn btn-ghost btn-full" onclick="showLogin()">🔐 Back to Login</button>
+    </div>
+  </div>
+</div>
 
 <!-- HEADER -->
 <div class="header">
@@ -319,6 +390,8 @@
       <button class="theme-toggle" id="themeToggleBtn" aria-label="Toggle theme"></button>
       <span id="themeLabel" style="font-size:11px;font-family:var(--mono)">DARK</span>
     </div>
+    <span id="userEmailDisp" style="font-size:11px;color:var(--text2);font-family:var(--mono)"></span>
+    <button class="btn btn-ghost btn-sm" onclick="handleLogout()" title="Logout">🚪 Logout</button>
   </div>
 </div>
 
@@ -847,7 +920,90 @@
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
-// ======= DATA STORE =======
+// ======= SUPABASE SETUP =======
+const SUPABASE_URL = 'https://aiympqxzmcctyrezzicr.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFpeW1wcXh6bWNjdHlyZXp6aWNyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3NTc2MzAsImV4cCI6MjA4OTMzMzYzMH0.OvsT_-AZbx2NPuq5WcP6BY8C9iQC4GWvryy5TwN82lY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentUser = null;
+
+// ======= AUTH =======
+function showLogin() {
+  document.getElementById('loginForm').style.display = 'block';
+  document.getElementById('signupForm').style.display = 'none';
+  document.getElementById('loginError').style.display = 'none';
+}
+function showSignup() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('signupForm').style.display = 'block';
+  document.getElementById('loginError').style.display = 'none';
+}
+function showAuthError(msg) {
+  const el = document.getElementById('loginError');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+async function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  if (!email || !pass) { showAuthError('Please enter email and password.'); return; }
+  const btn = document.getElementById('loginBtn');
+  btn.innerHTML = '<span class="login-spinner"></span> Logging in…';
+  btn.disabled = true;
+  const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+  btn.innerHTML = '🔐 LOGIN'; btn.disabled = false;
+  if (error) { showAuthError(error.message); return; }
+  await onLoginSuccess(data.user);
+}
+
+async function handleSignup() {
+  const email = document.getElementById('signupEmail').value.trim();
+  const pass = document.getElementById('signupPassword').value;
+  const confirm = document.getElementById('signupConfirm').value;
+  if (!email || !pass) { showAuthError('Please fill all fields.'); return; }
+  if (pass.length < 6) { showAuthError('Password must be at least 6 characters.'); return; }
+  if (pass !== confirm) { showAuthError('Passwords do not match.'); return; }
+  const btn = document.getElementById('signupBtn');
+  btn.innerHTML = '<span class="login-spinner"></span> Creating…';
+  btn.disabled = true;
+  const { data, error } = await sb.auth.signUp({ email, password: pass });
+  btn.innerHTML = '✅ CREATE ACCOUNT'; btn.disabled = false;
+  if (error) { showAuthError(error.message); return; }
+  if (data.user) {
+    await onLoginSuccess(data.user);
+  } else {
+    showAuthError('Check your email to confirm your account, then login.');
+    showLogin();
+  }
+}
+
+async function handleLogout() {
+  if (!confirm('Logout from Vardhaman Medical?')) return;
+  await sb.auth.signOut();
+  currentUser = null;
+  db = { medicines: [], customers: [], bills: [], returns: [], billCounter: 1 };
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('userEmailDisp').textContent = '';
+  toast('Logged out successfully.', 'info');
+}
+
+async function onLoginSuccess(user) {
+  currentUser = user;
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('loadingOverlay').style.display = 'flex';
+  document.getElementById('loadingMsg').textContent = 'Loading your data…';
+  document.getElementById('userEmailDisp').textContent = user.email;
+  await loadAllData();
+  document.getElementById('loadingOverlay').style.display = 'none';
+  applyTheme();
+  updateQuickStats();
+  updateStockStats();
+  updateReturnStats();
+  updateSupplierSuggestions();
+  renderBillItems();
+  toast(`Welcome back! Logged in as ${user.email}`, 'success');
+}
+
+// ======= DATA STORE (in-memory cache) =======
 let db = {
   medicines: [],
   customers: [],
@@ -856,42 +1012,123 @@ let db = {
   billCounter: 1
 };
 
-// LOAD from localStorage
-function loadDB() {
-  const saved = localStorage.getItem('vardhaman_db');
-  if (saved) {
-    db = JSON.parse(saved);
-    if (!db.billCounter) db.billCounter = 1;
-    if (!db.returns) db.returns = [];
+// ======= LOAD ALL DATA FROM SUPABASE =======
+async function loadAllData() {
+  if (!currentUser) return;
+  const uid = currentUser.id;
+
+  const [medsRes, custsRes, billsRes, retsRes, settRes] = await Promise.all([
+    sb.from('medicines').select('*').eq('user_id', uid).order('added_on', { ascending: false }),
+    sb.from('customers').select('*').eq('user_id', uid).order('registered_on', { ascending: false }),
+    sb.from('bills').select('*').eq('user_id', uid).order('date', { ascending: false }),
+    sb.from('returns').select('*').eq('user_id', uid).order('date', { ascending: false }),
+    sb.from('settings').select('*').eq('user_id', uid).single()
+  ]);
+
+  db.medicines = (medsRes.data || []).map(m => ({
+    id: m.id, name: m.name, brand: m.brand, category: m.category,
+    purchase: m.purchase_price, mrp: m.mrp, qty: m.qty,
+    batch: m.batch, expiry: m.expiry, rack: m.rack, alertAt: m.alert_at,
+    supplier: m.supplier, supplierContact: m.supplier_contact, addedOn: m.added_on
+  }));
+
+  db.customers = (custsRes.data || []).map(c => ({
+    id: c.id, name: c.name, mobile: c.mobile, age: c.age,
+    doctor: c.doctor, address: c.address, notes: c.notes,
+    meds: c.meds || [], visits: c.visits, registeredOn: c.registered_on
+  }));
+
+  db.bills = (billsRes.data || []).map(b => ({
+    id: b.id, date: b.date, customer: b.customer_id,
+    customerName: b.customer_name, items: b.items || [],
+    subtotal: b.subtotal, discount: b.discount, total: b.total,
+    payMode: b.pay_mode, hasReturn: b.has_return
+  }));
+
+  db.returns = (retsRes.data || []).map(r => ({
+    id: r.id, type: r.type, date: r.date,
+    originalBillId: r.original_bill_id, customerName: r.customer_name,
+    supplier: r.supplier, medName: r.med_name, medId: r.med_id,
+    batch: r.batch, qty: r.qty, purchasePrice: r.purchase_price,
+    totalValue: r.total_value, items: r.items || [],
+    refundAmt: r.refund_amt, reason: r.reason,
+    refundMode: r.refund_mode, notes: r.notes
+  }));
+
+  if (settRes.data) {
+    db.billCounter = settRes.data.bill_counter || 1;
+  } else {
+    // First time — create settings row
+    await sb.from('settings').insert({ user_id: uid, bill_counter: 1 });
+    db.billCounter = 1;
   }
 }
 
-function saveDB() {
-  localStorage.setItem('vardhaman_db', JSON.stringify(db));
+// ======= SAVE HELPERS =======
+async function saveMedicine(med) {
+  if (!currentUser) return;
+  const row = {
+    id: med.id, user_id: currentUser.id, name: med.name, brand: med.brand,
+    category: med.category, purchase_price: med.purchase, mrp: med.mrp,
+    qty: med.qty, batch: med.batch, expiry: med.expiry, rack: med.rack,
+    alert_at: med.alertAt, supplier: med.supplier,
+    supplier_contact: med.supplierContact, added_on: med.addedOn
+  };
+  await sb.from('medicines').upsert(row);
 }
 
-// DEMO SEED DATA
-function seedData() {
-  if (db.medicines.length > 0) return;
-  const meds = [
-    { id: genId(), name: 'Paracetamol 500mg', brand: 'Calpol', category: 'Tablet', purchase: 2.5, mrp: 5, qty: 200, batch: 'BAT2024A', expiry: '2026-08', rack: 'A1', alertAt: 20, addedOn: new Date().toISOString() },
-    { id: genId(), name: 'Amoxicillin 500mg', brand: 'Amoxil', category: 'Capsule', purchase: 8, mrp: 15, qty: 80, batch: 'BAT2024B', expiry: '2025-06', rack: 'A2', alertAt: 15, addedOn: new Date().toISOString() },
-    { id: genId(), name: 'Metformin 500mg', brand: 'Glycomet', category: 'Tablet', purchase: 3, mrp: 7, qty: 150, batch: 'BAT2024C', expiry: '2026-12', rack: 'B1', alertAt: 30, addedOn: new Date().toISOString() },
-    { id: genId(), name: 'Omeprazole 20mg', brand: 'Omez', category: 'Capsule', purchase: 5, mrp: 12, qty: 100, batch: 'BAT2024D', expiry: '2026-09', rack: 'B2', alertAt: 20, addedOn: new Date().toISOString() },
-    { id: genId(), name: 'Azithromycin 500mg', brand: 'Zithromax', category: 'Tablet', purchase: 25, mrp: 50, qty: 8, batch: 'BAT2024E', expiry: '2026-07', rack: 'A3', alertAt: 10, addedOn: new Date().toISOString() },
-    { id: genId(), name: 'Cetirizine 10mg', brand: 'Okacet', category: 'Tablet', purchase: 2, mrp: 4, qty: 300, batch: 'BAT2024F', expiry: '2026-11', rack: 'C1', alertAt: 30, addedOn: new Date().toISOString() },
-    { id: genId(), name: 'Ibuprofen 400mg', brand: 'Brufen', category: 'Tablet', purchase: 3.5, mrp: 8, qty: 120, batch: 'BAT2024G', expiry: '2026-10', rack: 'A4', alertAt: 20, addedOn: new Date().toISOString() },
-    { id: genId(), name: 'Cough Syrup (Benadryl)', brand: 'Benadryl', category: 'Syrup', purchase: 55, mrp: 95, qty: 30, batch: 'BAT2024H', expiry: '2025-04', rack: 'D1', alertAt: 5, addedOn: new Date().toISOString() },
-  ];
-  db.medicines = meds;
-
-  const custs = [
-    { id: 'VM001', name: 'Raju Patil', mobile: '9876543210', age: 55, doctor: 'Dr. Sharma', address: 'Naldurg', notes: 'Diabetic, BP', meds: ['Metformin 500mg OD', 'Amlodipine 5mg OD'], visits: 12, registeredOn: new Date().toISOString() },
-    { id: 'VM002', name: 'Sunita Deshpande', mobile: '9876500001', age: 42, doctor: 'Dr. Kulkarni', address: 'Osmanabad', notes: 'Thyroid', meds: ['Thyroxine 50mcg', 'Calcium tablets'], visits: 7, registeredOn: new Date().toISOString() },
-  ];
-  db.customers = custs;
-  saveDB();
+async function saveCustomer(c) {
+  if (!currentUser) return;
+  const row = {
+    id: c.id, user_id: currentUser.id, name: c.name, mobile: c.mobile,
+    age: c.age, doctor: c.doctor, address: c.address, notes: c.notes,
+    meds: c.meds, visits: c.visits, registered_on: c.registeredOn
+  };
+  await sb.from('customers').upsert(row);
 }
+
+async function saveBill(bill) {
+  if (!currentUser) return;
+  const row = {
+    id: bill.id, user_id: currentUser.id, date: bill.date,
+    customer_id: bill.customer, customer_name: bill.customerName,
+    items: bill.items, subtotal: bill.subtotal, discount: bill.discount,
+    total: bill.total, pay_mode: bill.payMode,
+    bill_counter: db.billCounter, has_return: bill.hasReturn || false
+  };
+  await sb.from('bills').upsert(row);
+  // Update bill counter in settings
+  await sb.from('settings').update({ bill_counter: db.billCounter }).eq('user_id', currentUser.id);
+}
+
+async function saveReturn(ret) {
+  if (!currentUser) return;
+  const row = {
+    id: ret.id, user_id: currentUser.id, type: ret.type, date: ret.date,
+    original_bill_id: ret.originalBillId, customer_name: ret.customerName,
+    supplier: ret.supplier, med_name: ret.medName, med_id: ret.medId,
+    batch: ret.batch, qty: ret.qty, purchase_price: ret.purchasePrice,
+    total_value: ret.totalValue, items: ret.items,
+    refund_amt: ret.refundAmt, reason: ret.reason,
+    refund_mode: ret.refundMode, notes: ret.notes
+  };
+  await sb.from('returns').insert(row);
+}
+
+async function deleteMedicineFromDB(id) {
+  if (!currentUser) return;
+  await sb.from('medicines').delete().eq('id', id).eq('user_id', currentUser.id);
+}
+
+async function deleteCustomerFromDB(id) {
+  if (!currentUser) return;
+  await sb.from('customers').delete().eq('id', id).eq('user_id', currentUser.id);
+}
+
+// Legacy saveDB — now a no-op (Supabase handles persistence)
+function saveDB() {}
+function loadDB() {}
+function seedData() {}  // No seed data for live version
 
 // ======= UTILS =======
 function genId() { return Math.random().toString(36).substr(2,9).toUpperCase(); }
@@ -1056,7 +1293,7 @@ function calcChange() {
   } else { changeRow.style.display = 'none'; }
 }
 
-function finalizeBill() {
+async function finalizeBill() {
   if (!currentBill.length) { toast('Add at least one medicine!', 'error'); return; }
   const totalStr = document.getElementById('sumTotal').textContent;
   const total = parseFloat(totalStr.replace('₹',''));
@@ -1081,9 +1318,19 @@ function finalizeBill() {
     const cust = db.customers.find(c => c.id === selectedCustomer.id);
     if (cust) cust.visits = (cust.visits || 0) + 1;
   }
-  db.bills.push(bill);
+  db.bills.unshift(bill);
   db.billCounter++;
-  saveDB();
+  await saveBill(bill);
+  // Save updated medicine quantities
+  for (const item of currentBill) {
+    const med = db.medicines.find(m => m.id === item.medId);
+    if (med) await saveMedicine(med);
+  }
+  // Save updated customer visits
+  if (selectedCustomer) {
+    const cust = db.customers.find(c => c.id === selectedCustomer.id);
+    if (cust) await saveCustomer(cust);
+  }
   printBill(bill);
   toast(`Bill ${bill.id} finalized! Total: ${fmt(total)}`, 'success');
   clearBill();
@@ -1196,7 +1443,7 @@ function quickAddMedByName(name) {
 }
 
 // ======= STOCK =======
-function addStock() {
+async function addStock() {
   const name = document.getElementById('stkName').value.trim();
   const brand = document.getElementById('stkBrand').value.trim();
   const cat = document.getElementById('stkCat').value;
@@ -1228,7 +1475,7 @@ function addStock() {
     db.medicines.push({ id: genId(), name, brand, category: cat, purchase, mrp, qty, batch, expiry, rack, alertAt, supplier, supplierContact, addedOn: new Date().toISOString() });
     toast(`${name} added to stock!`, 'success');
   }
-  saveDB();
+  await saveMedicine(existing || db.medicines[db.medicines.length - 1]);
   renderStock();
   updateStockStats();
   updateQuickStats();
@@ -1297,10 +1544,11 @@ function renderStock() {
   }).join('');
 }
 
-function deleteMed(id) {
+async function deleteMed(id) {
   if (!confirm('Delete this medicine from stock?')) return;
   db.medicines = db.medicines.filter(m => m.id !== id);
-  saveDB(); renderStock(); updateStockStats(); updateQuickStats();
+  await deleteMedicineFromDB(id);
+  renderStock(); updateStockStats(); updateQuickStats();
   toast('Medicine removed from stock.', 'info');
 }
 
@@ -1351,7 +1599,7 @@ function renderCustMedPreview() {
 
 function removeCustMed(i) { custMedsList.splice(i,1); renderCustMedPreview(); }
 
-function registerCustomer() {
+async function registerCustomer() {
   const name = document.getElementById('cName').value.trim();
   if (!name) { toast('Customer name is required!', 'error'); return; }
   const mobile = document.getElementById('cMobile').value.trim();
@@ -1364,8 +1612,8 @@ function registerCustomer() {
     id: genCustId(), name, mobile, age: parseInt(age)||null, doctor, address, notes,
     meds: [...custMedsList], visits: 0, registeredOn: new Date().toISOString()
   };
-  db.customers.push(cust);
-  saveDB();
+  db.customers.unshift(cust);
+  await saveCustomer(cust);
   toast(`Customer registered! ID: ${cust.id}`, 'success');
   // Clear
   ['cName','cMobile','cAge','cDoctor','cAddress','cNotes'].forEach(id => document.getElementById(id).value = '');
@@ -1410,7 +1658,7 @@ function showCustLookup(id) {
   document.getElementById('custLookupCard').style.display = 'block';
 }
 
-function editCustomer() {
+async function editCustomer() {
   const c = db.customers.find(x => x.id === lookupCustId);
   if (!c) return;
   // Pre-fill form
@@ -1422,17 +1670,19 @@ function editCustomer() {
   document.getElementById('cNotes').value = c.notes || '';
   custMedsList = [...(c.meds || [])];
   renderCustMedPreview();
-  // Remove old record
+  // Remove old record from DB and memory
   db.customers = db.customers.filter(x => x.id !== lookupCustId);
-  saveDB(); renderCustomerTable();
+  await deleteCustomerFromDB(lookupCustId);
+  renderCustomerTable();
   toast('Customer loaded for editing. Save will create updated record.', 'info');
 }
 
-function deleteCustomer() {
+async function deleteCustomer() {
   if (!lookupCustId) return;
   if (!confirm('Delete this customer record?')) return;
+  await deleteCustomerFromDB(lookupCustId);
   db.customers = db.customers.filter(x => x.id !== lookupCustId);
-  saveDB(); lookupCustId = null;
+  lookupCustId = null;
   document.getElementById('custLookupCard').style.display = 'none';
   renderCustomerTable();
   toast('Customer deleted.', 'info');
@@ -1625,7 +1875,7 @@ function recalcRefund() {
   document.getElementById('retItemCount').textContent = `${selected.length} item${selected.length !== 1 ? 's' : ''} selected for return`;
 }
 
-function processCustomerReturn() {
+async function processCustomerReturn() {
   const selected = returnItems.filter(i => i.returnQty > 0);
   if (!selected.length) { toast('Select at least one item to return!', 'error'); return; }
   if (!selectedReturnBill) { toast('No bill selected!', 'error'); return; }
@@ -1671,8 +1921,13 @@ function processCustomerReturn() {
     refundMode,
     notes
   };
-  db.returns.push(ret);
-  saveDB();
+  db.returns.unshift(ret);
+  await saveReturn(ret);
+  for (const item of selected) {
+    const med = db.medicines.find(m => m.id === item.medId);
+    if (med) await saveMedicine(med);
+  }
+  if (bill) await saveBill(bill);
 
   printReturnReceipt(ret);
   toast(`Return processed! Refund: ${fmt(refundAmt)}`, 'success');
@@ -1773,7 +2028,7 @@ function selectSuppRetMed(id) {
   }
 }
 
-function processSupplierReturn() {
+async function processSupplierReturn() {
   if (!selectedSuppMed) { toast('Select a medicine first!', 'error'); return; }
   const qty = parseInt(document.getElementById('suppRetQty').value) || 0;
   if (qty <= 0) { toast('Enter quantity to return!', 'error'); return; }
@@ -1801,8 +2056,10 @@ function processSupplierReturn() {
     reason,
     notes
   };
-  db.returns.push(ret);
-  saveDB();
+  db.returns.unshift(ret);
+  await saveReturn(ret);
+  const med = db.medicines.find(m => m.id === selectedSuppMed.id);
+  if (med) await saveMedicine(med);
   toast(`Supplier return recorded! ${qty} units of ${selectedSuppMed.name} deducted from stock.`, 'success');
   // Clear supplier form
   ['suppRetSupplier','suppRetMedSearch','suppRetBatch','suppRetQty','suppRetNotes'].forEach(id => document.getElementById(id).value = '');
@@ -1901,15 +2158,25 @@ document.addEventListener('click', e => {
 // Enter key for med input
 document.getElementById('newMedInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') addMedToList(); });
 
-// ======= INIT =======
-loadDB();
-seedData();
-applyTheme();
-updateQuickStats();
-updateStockStats();
-updateReturnStats();
-updateSupplierSuggestions();
-renderBillItems();
+// ======= INIT — Check login session =======
+(async () => {
+  applyTheme();
+  // Check if already logged in
+  const { data: { session } } = await sb.auth.getSession();
+  if (session && session.user) {
+    await onLoginSuccess(session.user);
+  } else {
+    document.getElementById('loadingOverlay').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  // Listen for auth changes (e.g. logout from another tab)
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT') {
+      document.getElementById('loginScreen').style.display = 'flex';
+    }
+  });
+})();
 </script>
 </body>
 </html>
