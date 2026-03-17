@@ -1,0 +1,1915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vardhaman Medical & General Stores — POS System</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2333;
+    --border: #21262d;
+    --border2: #2d333b;
+    --accent: #e8a020;
+    --accent2: #f0c040;
+    --green: #3fb950;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #484f58;
+    --radius: 8px;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --head: 'Rajdhani', sans-serif;
+  }
+
+  /* LIGHT MODE */
+  body.light {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #eef1f5;
+    --border: #d0d7e2;
+    --border2: #b8c2d0;
+    --accent: #c47d08;
+    --accent2: #e09010;
+    --green: #1a7f37;
+    --red: #cf2200;
+    --blue: #0969da;
+    --purple: #7c3aed;
+    --text: #1a1f2e;
+    --text2: #57606a;
+    --text3: #a0aab4;
+  }
+
+  /* THEME TOGGLE BUTTON */
+  .theme-toggle {
+    width: 44px; height: 24px;
+    background: var(--border2);
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .theme-toggle::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: transform 0.3s, background 0.3s;
+  }
+  body.light .theme-toggle { background: #b8c2d0; }
+  body.light .theme-toggle::after { transform: translateX(20px); }
+  .theme-toggle-wrap {
+    display: flex; align-items: center; gap: 7px;
+    font-size: 14px; color: var(--text2);
+    user-select: none;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+
+  /* HEADER */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 36px; height: 36px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .logo-text h1 { font-family: var(--head); font-size: 18px; font-weight: 700; color: var(--text); letter-spacing: 0.5px; }
+  .logo-text p { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  .clock { font-family: var(--mono); font-size: 13px; color: var(--accent); background: rgba(232,160,32,0.1); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(232,160,32,0.2); }
+  .date-disp { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+
+  /* NAV TABS */
+  .nav { background: var(--surface2); border-bottom: 1px solid var(--border); padding: 0 20px; display: flex; gap: 4px; }
+  .nav-btn {
+    padding: 10px 18px; font-family: var(--head); font-size: 15px; font-weight: 600;
+    color: var(--text2); background: none; border: none; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: all 0.2s; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .nav-btn:hover { color: var(--text); }
+  .nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .badge { background: var(--red); color: white; font-size: 10px; font-family: var(--mono); padding: 1px 5px; border-radius: 10px; font-weight: 600; }
+
+  /* LAYOUT */
+  .main { padding: 16px 20px; max-width: 1400px; margin: 0 auto; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .card-title { font-family: var(--head); font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px; }
+  .card-title span { color: var(--accent); }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .grid-billing { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; }
+
+  /* FORM ELEMENTS */
+  .form-group { margin-bottom: 12px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  label { display: block; font-size: 11px; font-family: var(--mono); color: var(--text2); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  input, select, textarea {
+    width: 100%; padding: 8px 10px; background: var(--bg); border: 1px solid var(--border2);
+    border-radius: 6px; color: var(--text); font-size: 13px; font-family: var(--sans);
+    transition: border-color 0.2s; outline: none;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(232,160,32,0.1); }
+  input::placeholder { color: var(--text3); }
+  select option { background: var(--surface2); }
+
+  /* BUTTONS */
+  .btn {
+    padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;
+    font-family: var(--head); font-size: 14px; font-weight: 600; letter-spacing: 0.5px;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:hover { background: var(--accent2); }
+  .btn-success { background: var(--green); color: #000; }
+  .btn-success:hover { background: #4cc960; }
+  .btn-danger { background: var(--red); color: white; }
+  .btn-danger:hover { background: #ff6b64; }
+  .btn-ghost { background: var(--border2); color: var(--text); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn-lg { padding: 12px 20px; font-size: 16px; }
+
+  /* TABLE */
+  table { width: 100%; border-collapse: collapse; }
+  th { font-family: var(--mono); font-size: 11px; color: var(--text2); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg); }
+  td { padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 13px; color: var(--text); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  .tbl-wrap { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; overflow-x: auto; }
+
+  /* PILLS & BADGES */
+  .pill { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-family: var(--mono); font-weight: 500; }
+  .pill-green { background: rgba(63,185,80,0.15); color: var(--green); border: 1px solid rgba(63,185,80,0.3); }
+  .pill-red { background: rgba(248,81,73,0.15); color: var(--red); border: 1px solid rgba(248,81,73,0.3); }
+  .pill-yellow { background: rgba(232,160,32,0.15); color: var(--accent); border: 1px solid rgba(232,160,32,0.3); }
+  .pill-blue { background: rgba(88,166,255,0.15); color: var(--blue); border: 1px solid rgba(88,166,255,0.3); }
+
+  /* STAT CARDS */
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .stat-label { font-family: var(--mono); font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .stat-value { font-family: var(--head); font-size: 28px; font-weight: 700; color: var(--text); }
+  .stat-sub { font-size: 12px; color: var(--text2); margin-top: 4px; }
+  .stat-value.green { color: var(--green); }
+  .stat-value.red { color: var(--red); }
+  .stat-value.accent { color: var(--accent); }
+
+  /* BILLING SPECIFIC */
+  .bill-search { position: relative; }
+  .bill-search-results {
+    position: absolute; top: 100%; left: 0; right: 0; background: var(--surface);
+    border: 1px solid var(--accent); border-radius: 6px; z-index: 50; max-height: 200px; overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .bill-search-results .result-item {
+    padding: 8px 12px; cursor: pointer; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .bill-search-results .result-item:hover { background: rgba(232,160,32,0.1); }
+  .result-item .med-name { font-weight: 500; font-size: 13px; }
+  .result-item .med-detail { font-size: 11px; color: var(--text2); font-family: var(--mono); }
+  .result-item .med-price { color: var(--accent); font-family: var(--mono); font-weight: 600; }
+
+  .bill-items { min-height: 120px; }
+  .bill-item-row td { padding: 6px 10px; }
+  .qty-ctrl { display: flex; align-items: center; gap: 6px; }
+  .qty-btn { width: 24px; height: 24px; border: 1px solid var(--border2); background: var(--bg); color: var(--text); border-radius: 4px; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; }
+  .qty-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .qty-inp { width: 50px; text-align: center; padding: 4px; font-family: var(--mono); font-size: 13px; }
+
+  .bill-summary { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-top: 12px; }
+  .bill-summary-row { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px; }
+  .bill-summary-row.total { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 6px; font-family: var(--head); font-size: 20px; font-weight: 700; color: var(--accent); }
+  .discount-row { display: flex; align-items: center; gap: 8px; }
+
+  /* CUSTOMER ID CARD */
+  .cust-id-card {
+    background: linear-gradient(135deg, var(--surface2) 0%, var(--surface) 100%);
+    border: 1px solid var(--accent); border-radius: 10px; padding: 16px;
+    margin-bottom: 14px; position: relative; overflow: hidden;
+  }
+  .cust-id-card::before {
+    content: ''; position: absolute; top: -20px; right: -20px;
+    width: 80px; height: 80px; background: rgba(232,160,32,0.08); border-radius: 50%;
+  }
+  .cust-id-badge { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--accent); letter-spacing: 2px; }
+  .cust-name-lg { font-family: var(--head); font-size: 20px; font-weight: 700; margin-top: 2px; }
+  .cust-meta { font-size: 12px; color: var(--text2); margin-top: 4px; font-family: var(--mono); }
+
+  /* MEDICINE LIST */
+  .med-tag { display: inline-block; background: rgba(88,166,255,0.12); color: var(--blue); border: 1px solid rgba(88,166,255,0.25); border-radius: 4px; padding: 2px 8px; font-size: 12px; font-family: var(--mono); margin: 2px; }
+
+  /* PRINT BILL */
+  .print-area { display: none; }
+  @media print {
+    body > *:not(.print-area) { display: none !important; }
+    .print-area { display: block !important; }
+    .print-bill { font-family: 'IBM Plex Sans', sans-serif; max-width: 300px; margin: 0 auto; font-size: 12px; color: #000; }
+    .print-bill h2 { text-align: center; font-size: 16px; margin-bottom: 2px; }
+    .print-bill .sub { text-align: center; font-size: 11px; margin-bottom: 10px; }
+    .print-bill hr { border: none; border-top: 1px dashed #000; margin: 8px 0; }
+    .print-bill table { width: 100%; font-size: 11px; }
+    .print-bill td { padding: 2px 0; }
+    .print-bill .total-row { font-weight: bold; font-size: 13px; }
+    .print-bill .footer { text-align: center; font-size: 10px; margin-top: 10px; }
+  }
+
+  /* TOAST */
+  .toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 999; display: flex; flex-direction: column; gap: 8px; }
+  .toast {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 16px; font-size: 13px; display: flex; align-items: center; gap: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4); animation: slideIn 0.3s ease; min-width: 220px;
+  }
+  .toast.success { border-left: 3px solid var(--green); }
+  .toast.error { border-left: 3px solid var(--red); }
+  .toast.info { border-left: 3px solid var(--blue); }
+  @keyframes slideIn { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  /* DIVIDER */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 40px 20px; color: var(--text2); }
+  .empty-state .icon { font-size: 32px; margin-bottom: 10px; }
+  .empty-state p { font-size: 13px; }
+
+  /* ALERT */
+  .alert { padding: 10px 14px; border-radius: 6px; font-size: 13px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .alert-warning { background: rgba(232,160,32,0.1); border: 1px solid rgba(232,160,32,0.3); color: var(--accent); }
+  .alert-danger { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); color: var(--red); }
+
+  .section-title { font-family: var(--head); font-size: 14px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+
+  /* RETURNS */
+  .return-type-toggle { display: flex; gap: 8px; margin-bottom: 14px; }
+  .return-type-btn { flex: 1; padding: 10px; border: 2px solid var(--border2); background: var(--bg); color: var(--text2); border-radius: 8px; cursor: pointer; font-family: var(--head); font-size: 15px; font-weight: 600; letter-spacing: 0.5px; text-align: center; transition: all 0.2s; }
+  .return-type-btn.active-customer { border-color: var(--blue); color: var(--blue); background: rgba(88,166,255,0.08); }
+  .return-type-btn.active-supplier { border-color: var(--purple); color: var(--purple); background: rgba(188,140,255,0.08); }
+  .return-bill-card { background: var(--bg); border: 1px solid var(--border2); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+  .return-item-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .return-item-row:last-child { border-bottom: none; }
+  .return-refund-box { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.25); border-radius: 8px; padding: 14px; margin-top: 12px; }
+  .return-refund-total { font-family: var(--head); font-size: 26px; font-weight: 700; color: var(--green); }
+
+  /* MODAL OVERLAY */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: flex; align-items: center; justify-content: center; }
+  .modal { background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 24px; width: 90%; max-width: 500px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); }
+  .modal-title { font-family: var(--head); font-size: 20px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .modal-actions { display: flex; gap: 8px; margin-top: 16px; justify-content: flex-end; }
+
+  .customer-search-box { display: flex; gap: 8px; margin-bottom: 12px; }
+  .flex-gap { display: flex; gap: 8px; align-items: center; }
+  .ml-auto { margin-left: auto; }
+  .mt-10 { margin-top: 10px; }
+  .mb-10 { margin-bottom: 10px; }
+  .text-right { text-align: right; }
+  .text-mono { font-family: var(--mono); }
+  .text-accent { color: var(--accent); }
+  .text-green { color: var(--green); }
+  .text-red { color: var(--red); }
+  .text-dim { color: var(--text2); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">💊</div>
+    <div class="logo-text">
+      <h1>VARDHAMAN MEDICAL & GENERAL STORES</h1>
+      <p>NALDURG &nbsp;·&nbsp; PROP: SACHIN VASANTRAO KASAR</p>
+    </div>
+  </div>
+  <div class="header-right">
+    <span class="date-disp" id="dateDisp"></span>
+    <span class="clock" id="clockDisp">00:00:00</span>
+    <div class="theme-toggle-wrap" onclick="toggleTheme()" title="Toggle Light / Dark Mode">
+      <span id="themeIcon">🌙</span>
+      <button class="theme-toggle" id="themeToggleBtn" aria-label="Toggle theme"></button>
+      <span id="themeLabel" style="font-size:11px;font-family:var(--mono)">DARK</span>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="switchTab('billing')">🧾 BILLING</button>
+  <button class="nav-btn" onclick="switchTab('stock')">📦 STOCK</button>
+  <button class="nav-btn" onclick="switchTab('customers')">👤 CUSTOMERS</button>
+  <button class="nav-btn" onclick="switchTab('dashboard')">📊 DASHBOARD</button>
+  <button class="nav-btn" onclick="switchTab('returns')">↩️ RETURNS</button>
+  <button class="nav-btn" onclick="switchTab('expiry')">⚠️ EXPIRY <span class="badge" id="expiryBadge">0</span></button>
+</div>
+
+<div class="main">
+
+<!-- ========== BILLING TAB ========== -->
+<div class="tab-content active" id="tab-billing">
+  <div class="grid-billing">
+    <!-- LEFT: Bill Builder -->
+    <div>
+      <div class="card">
+        <div class="card-title">🧾 NEW BILL <span style="font-size:12px;color:var(--text2);font-family:var(--mono);margin-left:auto" id="billNo">Bill #001</span></div>
+
+        <!-- Customer -->
+        <div class="section-title">Customer</div>
+        <div class="customer-search-box">
+          <div style="flex:1;position:relative">
+            <input type="text" id="custSearch" placeholder="Search by Name or Customer ID…" oninput="searchCustomer(this.value)" autocomplete="off">
+            <div class="bill-search-results" id="custResults" style="display:none"></div>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="clearCustomer()">Clear</button>
+        </div>
+        <div id="selectedCustInfo" style="display:none" class="cust-id-card" style="padding:10px">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div>
+              <div class="cust-id-badge" id="billCustId">—</div>
+              <div class="cust-name-lg" id="billCustName">—</div>
+              <div class="cust-meta" id="billCustMeta">—</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="loadCustMeds()">📋 Load Meds</button>
+          </div>
+        </div>
+        <div id="noCustomerNote" style="font-size:12px;color:var(--text2);margin-bottom:10px">Walk-in customer — no account linked</div>
+
+        <hr class="divider">
+
+        <!-- Medicine Search -->
+        <div class="section-title">Add Medicine</div>
+        <div class="bill-search" style="margin-bottom:12px">
+          <input type="text" id="medSearch" placeholder="Search medicine name, brand…" oninput="searchMedicine(this.value)" autocomplete="off">
+          <div class="bill-search-results" id="medResults" style="display:none"></div>
+        </div>
+
+        <!-- Bill Table -->
+        <div class="tbl-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Medicine</th><th>Qty</th><th>Rate</th><th>Amt</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="billItemsBody">
+              <tr id="emptyBillRow"><td colspan="5"><div class="empty-state" style="padding:20px"><div class="icon">💊</div><p>Search and add medicines above</p></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Summary -->
+        <div class="bill-summary mt-10">
+          <div class="bill-summary-row"><span class="text-dim">Subtotal</span><span class="text-mono" id="sumSubtotal">₹0.00</span></div>
+          <div class="bill-summary-row">
+            <span class="text-dim">Discount</span>
+            <div class="discount-row">
+              <input type="number" id="discountPct" min="0" max="100" value="0" style="width:60px;text-align:center" oninput="recalcBill()"> %
+            </div>
+          </div>
+          <div class="bill-summary-row"><span class="text-dim">GST (12%)</span><span class="text-mono" id="sumGST">₹0.00</span></div>
+          <div class="bill-summary-row total"><span>TOTAL</span><span id="sumTotal">₹0.00</span></div>
+        </div>
+
+        <!-- Payment -->
+        <div class="form-row mt-10">
+          <div class="form-group">
+            <label>Payment Mode</label>
+            <select id="payMode">
+              <option>Cash</option><option>UPI / GPay</option><option>Card</option><option>Credit (Due)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Amount Tendered (₹)</label>
+            <input type="number" id="amtTendered" placeholder="0.00" oninput="calcChange()">
+          </div>
+        </div>
+        <div id="changeRow" style="display:none;font-family:var(--mono);font-size:14px;color:var(--green);margin-bottom:10px">Change: ₹<span id="changeAmt">0.00</span></div>
+
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-success btn-lg" style="flex:1" onclick="finalizeBill()">✅ FINALIZE & PRINT BILL</button>
+          <button class="btn btn-ghost" onclick="clearBill()">🗑 Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Customer Meds + Quick Stats -->
+    <div>
+      <div class="card mb-10">
+        <div class="card-title">📋 Customer Medicine List</div>
+        <div id="custMedList">
+          <div class="empty-state" style="padding:20px"><div class="icon">👤</div><p>Select a customer to view their medicine list</p></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">⚡ Quick Stats</div>
+        <div class="grid-2">
+          <div><div class="stat-label">Today Bills</div><div class="stat-value accent" id="todayBills">0</div></div>
+          <div><div class="stat-label">Today Sales</div><div class="stat-value green" id="todaySales">₹0</div></div>
+          <div><div class="stat-label">Low Stock</div><div class="stat-value red" id="lowStockCount">0</div></div>
+          <div><div class="stat-label">Total Meds</div><div class="stat-value" id="totalMeds">0</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== STOCK TAB ========== -->
+<div class="tab-content" id="tab-stock">
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- ADD STOCK FORM -->
+    <div class="card">
+      <div class="card-title">📦 <span>Add / Update Stock</span></div>
+      <div class="form-group">
+        <label>Medicine Name *</label>
+        <input type="text" id="stkName" placeholder="e.g. Paracetamol 500mg">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Brand / Company</label>
+          <input type="text" id="stkBrand" placeholder="e.g. Calpol">
+        </div>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="stkCat">
+            <option>Tablet</option><option>Capsule</option><option>Syrup</option><option>Injection</option>
+            <option>Drops</option><option>Cream/Ointment</option><option>Powder</option><option>Devices</option><option>General</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Purchase Price (₹)</label>
+          <input type="number" id="stkPurchase" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>MRP / Sale Price (₹)</label>
+          <input type="number" id="stkMRP" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div class="form-group">
+          <label>Quantity (units)</label>
+          <input type="number" id="stkQty" placeholder="0" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Batch Number</label>
+          <input type="text" id="stkBatch" placeholder="e.g. BAT2024A">
+        </div>
+        <div class="form-group">
+          <label>Expiry Date</label>
+          <input type="month" id="stkExpiry">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Rack / Location</label>
+          <input type="text" id="stkRack" placeholder="e.g. Rack A3, Shelf 2">
+        </div>
+        <div class="form-group">
+          <label>Low Stock Alert Below (units)</label>
+          <input type="number" id="stkAlert" placeholder="10" value="10" min="1">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🏭 Supplier Name *</label>
+        <div style="position:relative">
+          <input type="text" id="stkSupplier" placeholder="e.g. Medico Pharma Distributors" list="supplierSuggestions" autocomplete="off">
+          <datalist id="supplierSuggestions"></datalist>
+        </div>
+        <div style="font-size:11px;color:var(--text2);margin-top:3px">Saved for easy supplier return reference when medicine expires</div>
+      </div>
+      <div class="form-group">
+        <label>Supplier Mobile / Contact (optional)</label>
+        <input type="text" id="stkSupplierContact" placeholder="e.g. 9876543210">
+      </div>
+      <button class="btn btn-primary btn-full" style="margin-top:4px" onclick="addStock()">📦 ADD TO STOCK</button>
+    </div>
+
+    <!-- STOCK FILTERS -->
+    <div>
+      <div class="card mb-10">
+        <div class="card-title">🔍 Search Stock</div>
+        <div class="flex-gap">
+          <input type="text" id="stockSearch" placeholder="Search medicines…" oninput="renderStock()" style="flex:1">
+          <select id="stockCatFilter" onchange="renderStock()">
+            <option value="">All Categories</option>
+            <option>Tablet</option><option>Capsule</option><option>Syrup</option><option>Injection</option>
+            <option>Drops</option><option>Cream/Ointment</option><option>Powder</option><option>Devices</option><option>General</option>
+          </select>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📊 Stock Summary</div>
+        <div class="grid-2">
+          <div><div class="stat-label">Total SKUs</div><div class="stat-value" id="totalSKU">0</div></div>
+          <div><div class="stat-label">Low Stock Items</div><div class="stat-value red" id="lowSKU">0</div></div>
+          <div><div class="stat-label">Expiring ≤30 Days</div><div class="stat-value" style="color:var(--accent)" id="expiringSoon">0</div></div>
+          <div><div class="stat-label">Stock Value</div><div class="stat-value green" id="stockValue" style="font-size:18px">₹0</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STOCK TABLE -->
+  <div class="card">
+    <div class="card-title">📋 Current Stock</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Medicine</th><th>Brand</th><th>Category</th><th>MRP (₹)</th><th>Stock</th><th>Batch</th><th>Expiry</th><th>Rack</th><th>🏭 Supplier</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="stockTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== CUSTOMERS TAB ========== -->
+<div class="tab-content" id="tab-customers">
+  <div class="grid-2" style="margin-bottom:16px">
+    <!-- ADD CUSTOMER -->
+    <div class="card">
+      <div class="card-title">👤 <span>Register New Customer</span></div>
+      <div class="form-group">
+        <label>Full Name *</label>
+        <input type="text" id="cName" placeholder="Patient / Customer Name">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Mobile Number</label>
+          <input type="tel" id="cMobile" placeholder="10-digit mobile">
+        </div>
+        <div class="form-group">
+          <label>Age</label>
+          <input type="number" id="cAge" placeholder="Age" min="0" max="120">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Doctor Name</label>
+          <input type="text" id="cDoctor" placeholder="Treating Doctor">
+        </div>
+        <div class="form-group">
+          <label>Address / Village</label>
+          <input type="text" id="cAddress" placeholder="Village / Area">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Medical Conditions / Notes</label>
+        <textarea id="cNotes" rows="2" placeholder="e.g. Diabetic, Hypertensive…"></textarea>
+      </div>
+
+      <hr class="divider">
+      <div class="section-title">Medicines / Prescription</div>
+      <div id="custMedInputs">
+        <div class="flex-gap mb-10">
+          <input type="text" id="newMedInput" placeholder="Medicine name, dosage, frequency…" style="flex:1">
+          <button class="btn btn-ghost btn-sm" onclick="addMedToList()">+ Add</button>
+        </div>
+      </div>
+      <div id="custMedPreview" style="min-height:40px;margin-bottom:10px"></div>
+      <button class="btn btn-primary btn-full" onclick="registerCustomer()">✅ REGISTER CUSTOMER</button>
+    </div>
+
+    <!-- CUSTOMER LOOKUP -->
+    <div class="card">
+      <div class="card-title">🔍 Customer Lookup</div>
+      <div class="flex-gap mb-10">
+        <input type="text" id="custLookup" placeholder="Search by name, ID, mobile…" oninput="searchCustTable(this.value)" style="flex:1">
+      </div>
+      <div id="custLookupCard" style="display:none" class="cust-id-card">
+        <div style="display:flex;justify-content:space-between">
+          <div>
+            <div class="cust-id-badge" id="lookupId">—</div>
+            <div class="cust-name-lg" id="lookupName">—</div>
+            <div class="cust-meta" id="lookupMeta">—</div>
+            <div class="cust-meta" id="lookupDoctor">—</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--text2);margin-bottom:4px">CONDITIONS</div>
+            <div id="lookupNotes" style="font-size:12px;color:var(--text);max-width:150px"></div>
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <div class="section-title" style="margin-bottom:6px">Medicine List</div>
+          <div id="lookupMeds"></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn btn-ghost btn-sm" onclick="editCustomer()">✏️ Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteCustomer()">🗑 Delete</button>
+        </div>
+      </div>
+      <div id="custTableWrap" class="tbl-wrap">
+        <table>
+          <thead><tr><th>ID</th><th>Name</th><th>Mobile</th><th>Meds</th><th>Visits</th></tr></thead>
+          <tbody id="custTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== DASHBOARD TAB ========== -->
+<div class="tab-content" id="tab-dashboard">
+  <div class="grid-3 mb-10">
+    <div class="stat-card"><div class="stat-label">Today Revenue</div><div class="stat-value green" id="dTodayRev">₹0</div><div class="stat-sub">Bills today: <span id="dTodayBills">0</span></div></div>
+    <div class="stat-card"><div class="stat-label">This Month</div><div class="stat-value accent" id="dMonthRev">₹0</div><div class="stat-sub">Running total</div></div>
+    <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value" id="dTotalRev">₹0</div><div class="stat-sub">All time</div></div>
+  </div>
+  <div class="grid-2 mb-10">
+    <div class="stat-card"><div class="stat-label">Registered Customers</div><div class="stat-value" id="dTotalCust">0</div></div>
+    <div class="stat-card"><div class="stat-label">Medicines in Stock</div><div class="stat-value" id="dTotalStock">0</div></div>
+  </div>
+
+  <!-- RECENT BILLS -->
+  <div class="card">
+    <div class="card-title">🧾 Recent Bills</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Bill #</th><th>Date & Time</th><th>Customer</th><th>Items</th><th>Total (₹)</th><th>Payment</th></tr></thead>
+        <tbody id="recentBillsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ========== RETURNS TAB ========== -->
+<div class="tab-content" id="tab-returns">
+  <div class="grid-billing">
+
+    <!-- LEFT: Return Form -->
+    <div>
+      <div class="card">
+        <div class="card-title">↩️ Process Return</div>
+
+        <!-- Return Type Toggle -->
+        <div class="return-type-toggle">
+          <button class="return-type-btn active-customer" id="retTypeCust" onclick="setReturnType('customer')">👤 Customer Return</button>
+          <button class="return-type-btn" id="retTypeSupp" onclick="setReturnType('supplier')">🏭 Supplier Return</button>
+        </div>
+
+        <!-- CUSTOMER RETURN SECTION -->
+        <div id="customerReturnSection">
+          <div class="section-title">Step 1 — Find Original Bill</div>
+          <div style="position:relative;margin-bottom:12px">
+            <input type="text" id="retBillSearch" placeholder="Search by Bill No, Customer Name or ID…" oninput="searchReturnBill(this.value)" autocomplete="off">
+            <div class="bill-search-results" id="retBillResults" style="display:none"></div>
+          </div>
+
+          <!-- Selected Bill Info -->
+          <div id="retSelectedBill" style="display:none">
+            <div class="return-bill-card">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div>
+                  <div class="text-mono text-accent" style="font-size:16px;font-weight:600" id="retBillId">—</div>
+                  <div class="text-dim" style="font-size:12px" id="retBillDate">—</div>
+                </div>
+                <div style="text-align:right">
+                  <div style="font-size:12px;color:var(--text2)">Customer</div>
+                  <div style="font-weight:500" id="retBillCust">—</div>
+                </div>
+              </div>
+              <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Original Total: <span class="text-mono text-accent" id="retBillOrigTotal">—</span> &nbsp;·&nbsp; Payment: <span id="retBillPayMode">—</span></div>
+            </div>
+
+            <div class="section-title">Step 2 — Select Items to Return</div>
+            <div id="retItemsList"></div>
+
+            <!-- Return Reason -->
+            <div class="form-group mt-10">
+              <label>Return Reason</label>
+              <select id="retReason">
+                <option>Wrong medicine dispensed</option>
+                <option>Doctor changed prescription</option>
+                <option>Duplicate purchase</option>
+                <option>Medicine not needed</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Refund Mode</label>
+              <select id="retRefundMode">
+                <option>Cash</option>
+                <option>UPI / GPay</option>
+                <option>Store Credit</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Notes (optional)</label>
+              <input type="text" id="retNotes" placeholder="Any additional notes…">
+            </div>
+
+            <!-- Refund Summary -->
+            <div class="return-refund-box">
+              <div style="font-size:12px;color:var(--text2);margin-bottom:4px">REFUND AMOUNT</div>
+              <div class="return-refund-total" id="retRefundTotal">₹0.00</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:4px" id="retItemCount">0 items selected</div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn btn-success btn-lg" style="flex:1" onclick="processCustomerReturn()">✅ PROCESS RETURN & PRINT RECEIPT</button>
+              <button class="btn btn-ghost" onclick="clearReturn()">Clear</button>
+            </div>
+          </div>
+
+          <div id="retNoBillNote" style="color:var(--text2);font-size:13px;padding:20px 0;text-align:center">Search for a bill above to start a customer return</div>
+        </div>
+
+        <!-- SUPPLIER RETURN SECTION -->
+        <div id="supplierReturnSection" style="display:none">
+          <div class="section-title">Supplier / Damaged Stock Return</div>
+          <div class="form-group">
+            <label>Supplier Name</label>
+            <input type="text" id="suppRetSupplier" placeholder="Supplier or Company Name">
+            <div id="suppRetSupplierHint" style="font-size:11px;color:var(--purple);margin-top:3px;font-family:var(--mono)"></div>
+          </div>
+          <div class="form-group">
+            <label>Medicine Name</label>
+            <div style="position:relative">
+              <input type="text" id="suppRetMedSearch" placeholder="Search medicine…" oninput="searchSuppRetMed(this.value)" autocomplete="off">
+              <div class="bill-search-results" id="suppRetMedResults" style="display:none"></div>
+            </div>
+          </div>
+          <!-- Selected Supplier Return Items -->
+          <div id="suppRetItemsArea" style="margin-bottom:12px"></div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Batch Number</label>
+              <input type="text" id="suppRetBatch" placeholder="Batch No">
+            </div>
+            <div class="form-group">
+              <label>Quantity Returning</label>
+              <input type="number" id="suppRetQty" placeholder="0" min="1">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Return Reason</label>
+            <select id="suppRetReason">
+              <option>Expired stock</option>
+              <option>Damaged packaging</option>
+              <option>Wrong medicine supplied</option>
+              <option>Quality issue</option>
+              <option>Overstocked</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Notes</label>
+            <input type="text" id="suppRetNotes" placeholder="Additional notes…">
+          </div>
+          <div id="suppRetSelectedMed" style="display:none" class="return-bill-card">
+            <div style="font-size:12px;color:var(--text2)">Selected Medicine</div>
+            <div style="font-weight:600;font-size:15px" id="suppRetMedName">—</div>
+            <div class="text-mono text-dim" style="font-size:12px" id="suppRetMedStock">—</div>
+          </div>
+          <button class="btn btn-primary btn-full mt-10" onclick="processSupplierReturn()">📦 RECORD SUPPLIER RETURN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Returns History -->
+    <div>
+      <div class="card">
+        <div class="card-title">📋 Returns History</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button class="btn btn-ghost btn-sm" onclick="filterReturns('all')" id="rfAll" style="border:1px solid var(--accent);color:var(--accent)">All</button>
+          <button class="btn btn-ghost btn-sm" onclick="filterReturns('customer')" id="rfCust">👤 Customer</button>
+          <button class="btn btn-ghost btn-sm" onclick="filterReturns('supplier')" id="rfSupp">🏭 Supplier</button>
+        </div>
+        <div id="returnsHistoryList">
+          <div class="empty-state"><div class="icon">↩️</div><p>No returns recorded yet</p></div>
+        </div>
+      </div>
+
+      <div class="card mt-10">
+        <div class="card-title">📊 Returns Summary</div>
+        <div class="grid-2">
+          <div><div class="stat-label">Total Returns</div><div class="stat-value accent" id="retTotalCount">0</div></div>
+          <div><div class="stat-label">Total Refunded</div><div class="stat-value red" id="retTotalAmt">₹0</div></div>
+          <div><div class="stat-label">Customer Returns</div><div class="stat-value" id="retCustCount">0</div></div>
+          <div><div class="stat-label">Supplier Returns</div><div class="stat-value" id="retSuppCount">0</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ========== EXPIRY TAB ========== -->
+<div class="tab-content" id="tab-expiry">
+  <div class="card">
+    <div class="card-title">⚠️ Expiry Alerts</div>
+    <div id="expiryAlerts">
+      <div class="empty-state"><div class="icon">✅</div><p>No expiry alerts at this time</p></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- PRINT AREA -->
+<div class="print-area">
+  <div class="print-bill" id="printBillArea"></div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ======= DATA STORE =======
+let db = {
+  medicines: [],
+  customers: [],
+  bills: [],
+  returns: [],
+  billCounter: 1
+};
+
+// LOAD from localStorage
+function loadDB() {
+  const saved = localStorage.getItem('vardhaman_db');
+  if (saved) {
+    db = JSON.parse(saved);
+    if (!db.billCounter) db.billCounter = 1;
+    if (!db.returns) db.returns = [];
+  }
+}
+
+function saveDB() {
+  localStorage.setItem('vardhaman_db', JSON.stringify(db));
+}
+
+// DEMO SEED DATA
+function seedData() {
+  if (db.medicines.length > 0) return;
+  const meds = [
+    { id: genId(), name: 'Paracetamol 500mg', brand: 'Calpol', category: 'Tablet', purchase: 2.5, mrp: 5, qty: 200, batch: 'BAT2024A', expiry: '2026-08', rack: 'A1', alertAt: 20, addedOn: new Date().toISOString() },
+    { id: genId(), name: 'Amoxicillin 500mg', brand: 'Amoxil', category: 'Capsule', purchase: 8, mrp: 15, qty: 80, batch: 'BAT2024B', expiry: '2025-06', rack: 'A2', alertAt: 15, addedOn: new Date().toISOString() },
+    { id: genId(), name: 'Metformin 500mg', brand: 'Glycomet', category: 'Tablet', purchase: 3, mrp: 7, qty: 150, batch: 'BAT2024C', expiry: '2026-12', rack: 'B1', alertAt: 30, addedOn: new Date().toISOString() },
+    { id: genId(), name: 'Omeprazole 20mg', brand: 'Omez', category: 'Capsule', purchase: 5, mrp: 12, qty: 100, batch: 'BAT2024D', expiry: '2026-09', rack: 'B2', alertAt: 20, addedOn: new Date().toISOString() },
+    { id: genId(), name: 'Azithromycin 500mg', brand: 'Zithromax', category: 'Tablet', purchase: 25, mrp: 50, qty: 8, batch: 'BAT2024E', expiry: '2026-07', rack: 'A3', alertAt: 10, addedOn: new Date().toISOString() },
+    { id: genId(), name: 'Cetirizine 10mg', brand: 'Okacet', category: 'Tablet', purchase: 2, mrp: 4, qty: 300, batch: 'BAT2024F', expiry: '2026-11', rack: 'C1', alertAt: 30, addedOn: new Date().toISOString() },
+    { id: genId(), name: 'Ibuprofen 400mg', brand: 'Brufen', category: 'Tablet', purchase: 3.5, mrp: 8, qty: 120, batch: 'BAT2024G', expiry: '2026-10', rack: 'A4', alertAt: 20, addedOn: new Date().toISOString() },
+    { id: genId(), name: 'Cough Syrup (Benadryl)', brand: 'Benadryl', category: 'Syrup', purchase: 55, mrp: 95, qty: 30, batch: 'BAT2024H', expiry: '2025-04', rack: 'D1', alertAt: 5, addedOn: new Date().toISOString() },
+  ];
+  db.medicines = meds;
+
+  const custs = [
+    { id: 'VM001', name: 'Raju Patil', mobile: '9876543210', age: 55, doctor: 'Dr. Sharma', address: 'Naldurg', notes: 'Diabetic, BP', meds: ['Metformin 500mg OD', 'Amlodipine 5mg OD'], visits: 12, registeredOn: new Date().toISOString() },
+    { id: 'VM002', name: 'Sunita Deshpande', mobile: '9876500001', age: 42, doctor: 'Dr. Kulkarni', address: 'Osmanabad', notes: 'Thyroid', meds: ['Thyroxine 50mcg', 'Calcium tablets'], visits: 7, registeredOn: new Date().toISOString() },
+  ];
+  db.customers = custs;
+  saveDB();
+}
+
+// ======= UTILS =======
+function genId() { return Math.random().toString(36).substr(2,9).toUpperCase(); }
+function genCustId() { const n = db.customers.length + 1; return 'VM' + String(n).padStart(3,'0'); }
+function fmt(n) { return '₹' + (parseFloat(n)||0).toFixed(2); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function thisMonth() { return new Date().toISOString().substr(0,7); }
+
+function toast(msg, type='info') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  const icons = { success:'✅', error:'❌', info:'ℹ️' };
+  t.innerHTML = `<span>${icons[type]||'ℹ️'}</span><span>${msg}</span>`;
+  c.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+// ======= THEME =======
+function toggleTheme() {
+  const isLight = document.body.classList.toggle('light');
+  document.getElementById('themeIcon').textContent = isLight ? '☀️' : '🌙';
+  document.getElementById('themeLabel').textContent = isLight ? 'LIGHT' : 'DARK';
+  localStorage.setItem('vardhaman_theme', isLight ? 'light' : 'dark');
+}
+
+function applyTheme() {
+  const saved = localStorage.getItem('vardhaman_theme');
+  if (saved === 'light') {
+    document.body.classList.add('light');
+    document.getElementById('themeIcon').textContent = '☀️';
+    document.getElementById('themeLabel').textContent = 'LIGHT';
+  }
+}
+
+// ======= CLOCK =======
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clockDisp').textContent = now.toLocaleTimeString('en-IN');
+  document.getElementById('dateDisp').textContent = now.toLocaleDateString('en-IN', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ======= TAB SWITCHING =======
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if (tab === 'stock') { renderStock(); updateStockStats(); }
+  if (tab === 'customers') { renderCustomerTable(); }
+  if (tab === 'dashboard') { renderDashboard(); }
+  if (tab === 'expiry') { renderExpiry(); }
+  if (tab === 'returns') { renderReturnsHistory(); updateReturnStats(); }
+}
+
+// ======= BILLING =======
+let currentBill = [];
+let selectedCustomer = null;
+
+function searchMedicine(q) {
+  const box = document.getElementById('medResults');
+  if (!q || q.length < 2) { box.style.display='none'; return; }
+  const results = db.medicines.filter(m => m.name.toLowerCase().includes(q.toLowerCase()) || m.brand.toLowerCase().includes(q.toLowerCase()) || m.category.toLowerCase().includes(q.toLowerCase()));
+  if (!results.length) { box.style.display='none'; return; }
+  box.innerHTML = results.slice(0,6).map(m => `
+    <div class="result-item" onclick="addToBill('${m.id}')">
+      <div>
+        <div class="med-name">${m.name}</div>
+        <div class="med-detail">${m.brand} · ${m.category} · Stock: ${m.qty}</div>
+      </div>
+      <div class="med-price">${fmt(m.mrp)}</div>
+    </div>
+  `).join('');
+  box.style.display = 'block';
+}
+
+function addToBill(medId) {
+  const med = db.medicines.find(m => m.id === medId);
+  if (!med) return;
+  if (med.qty <= 0) { toast('Out of stock!', 'error'); return; }
+  const existing = currentBill.find(i => i.medId === medId);
+  if (existing) {
+    if (existing.qty >= med.qty) { toast('Not enough stock!', 'error'); return; }
+    existing.qty++;
+    existing.amount = existing.qty * existing.rate;
+  } else {
+    currentBill.push({ medId, name: med.name, brand: med.brand, rate: med.mrp, qty: 1, amount: med.mrp });
+  }
+  document.getElementById('medSearch').value = '';
+  document.getElementById('medResults').style.display = 'none';
+  renderBillItems();
+}
+
+function renderBillItems() {
+  const tbody = document.getElementById('billItemsBody');
+  if (!currentBill.length) {
+    tbody.innerHTML = '<tr id="emptyBillRow"><td colspan="5"><div class="empty-state" style="padding:20px"><div class="icon">💊</div><p>Search and add medicines above</p></div></td></tr>';
+    recalcBill(); return;
+  }
+  tbody.innerHTML = currentBill.map((item, i) => `
+    <tr class="bill-item-row">
+      <td><div style="font-weight:500">${item.name}</div><div style="font-size:11px;color:var(--text2)">${item.brand}</div></td>
+      <td>
+        <div class="qty-ctrl">
+          <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+          <input class="qty-inp" type="number" value="${item.qty}" min="1" onchange="setQty(${i},this.value)">
+          <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+        </div>
+      </td>
+      <td class="text-mono">${fmt(item.rate)}</td>
+      <td class="text-mono text-accent">${fmt(item.amount)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeFromBill(${i})">×</button></td>
+    </tr>
+  `).join('');
+  recalcBill();
+}
+
+function changeQty(i, delta) {
+  const item = currentBill[i];
+  const med = db.medicines.find(m => m.id === item.medId);
+  const newQty = item.qty + delta;
+  if (newQty < 1) return;
+  if (med && newQty > med.qty) { toast('Not enough stock!', 'error'); return; }
+  item.qty = newQty;
+  item.amount = item.qty * item.rate;
+  renderBillItems();
+}
+
+function setQty(i, val) {
+  const item = currentBill[i];
+  const med = db.medicines.find(m => m.id === item.medId);
+  const newQty = parseInt(val) || 1;
+  if (med && newQty > med.qty) { toast('Not enough stock!', 'error'); return; }
+  item.qty = newQty < 1 ? 1 : newQty;
+  item.amount = item.qty * item.rate;
+  renderBillItems();
+}
+
+function removeFromBill(i) { currentBill.splice(i,1); renderBillItems(); }
+
+function recalcBill() {
+  const subtotal = currentBill.reduce((s,i) => s + i.amount, 0);
+  const disc = parseFloat(document.getElementById('discountPct').value) || 0;
+  const afterDisc = subtotal * (1 - disc/100);
+  const gst = afterDisc * 0.12;
+  const total = afterDisc + gst;
+  document.getElementById('sumSubtotal').textContent = fmt(subtotal);
+  document.getElementById('sumGST').textContent = fmt(gst);
+  document.getElementById('sumTotal').textContent = fmt(total);
+  calcChange();
+}
+
+function calcChange() {
+  const totalEl = document.getElementById('sumTotal').textContent;
+  const total = parseFloat(totalEl.replace('₹','')) || 0;
+  const tendered = parseFloat(document.getElementById('amtTendered').value) || 0;
+  const changeRow = document.getElementById('changeRow');
+  if (tendered > 0 && tendered >= total) {
+    document.getElementById('changeAmt').textContent = (tendered - total).toFixed(2);
+    changeRow.style.display = 'block';
+  } else { changeRow.style.display = 'none'; }
+}
+
+function finalizeBill() {
+  if (!currentBill.length) { toast('Add at least one medicine!', 'error'); return; }
+  const totalStr = document.getElementById('sumTotal').textContent;
+  const total = parseFloat(totalStr.replace('₹',''));
+  const bill = {
+    id: 'BILL' + String(db.billCounter).padStart(4,'0'),
+    date: new Date().toISOString(),
+    customer: selectedCustomer ? selectedCustomer.id : null,
+    customerName: selectedCustomer ? selectedCustomer.name : 'Walk-in',
+    items: [...currentBill],
+    subtotal: currentBill.reduce((s,i) => s+i.amount, 0),
+    discount: parseFloat(document.getElementById('discountPct').value) || 0,
+    total,
+    payMode: document.getElementById('payMode').value
+  };
+  // Deduct stock
+  currentBill.forEach(item => {
+    const med = db.medicines.find(m => m.id === item.medId);
+    if (med) med.qty -= item.qty;
+  });
+  // Increment visits
+  if (selectedCustomer) {
+    const cust = db.customers.find(c => c.id === selectedCustomer.id);
+    if (cust) cust.visits = (cust.visits || 0) + 1;
+  }
+  db.bills.push(bill);
+  db.billCounter++;
+  saveDB();
+  printBill(bill);
+  toast(`Bill ${bill.id} finalized! Total: ${fmt(total)}`, 'success');
+  clearBill();
+  updateQuickStats();
+}
+
+function printBill(bill) {
+  const items = bill.items.map(i => `<tr><td>${i.name}</td><td style="text-align:center">${i.qty}</td><td style="text-align:right">₹${i.rate.toFixed(2)}</td><td style="text-align:right">₹${i.amount.toFixed(2)}</td></tr>`).join('');
+  const html = `
+    <div class="print-bill">
+      <h2>💊 Vardhaman Medical & General Stores</h2>
+      <div class="sub">Naldurg · Prop: Sachin Vasantrao Kasar<br>Ph: ——</div>
+      <hr>
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <span>Bill: <b>${bill.id}</b></span><span>${new Date(bill.date).toLocaleString('en-IN')}</span>
+      </div>
+      <div style="font-size:11px;margin:4px 0">Customer: <b>${bill.customerName}</b>${bill.customer ? ' · ID: '+bill.customer : ''}</div>
+      <hr>
+      <table><thead><tr><th style="text-align:left">Medicine</th><th>Qty</th><th>Rate</th><th>Amt</th></tr></thead>
+      <tbody>${items}</tbody></table>
+      <hr>
+      <div style="display:flex;justify-content:space-between;font-size:11px"><span>Subtotal</span><span>₹${bill.subtotal.toFixed(2)}</span></div>
+      ${bill.discount > 0 ? `<div style="display:flex;justify-content:space-between;font-size:11px"><span>Discount (${bill.discount}%)</span><span>-₹${(bill.subtotal * bill.discount/100).toFixed(2)}</span></div>` : ''}
+      <div class="total-row" style="display:flex;justify-content:space-between;margin-top:4px"><span>TOTAL</span><span>₹${bill.total.toFixed(2)}</span></div>
+      <div style="font-size:11px;margin-top:4px">Payment: ${bill.payMode}</div>
+      <hr>
+      <div class="footer">Thank you for choosing Vardhaman Medical!<br>Take medicines as prescribed by doctor.</div>
+    </div>`;
+  document.getElementById('printBillArea').innerHTML = html;
+  setTimeout(() => window.print(), 200);
+}
+
+function clearBill() {
+  currentBill = [];
+  selectedCustomer = null;
+  document.getElementById('discountPct').value = 0;
+  document.getElementById('amtTendered').value = '';
+  document.getElementById('changeRow').style.display = 'none';
+  document.getElementById('custSearch').value = '';
+  document.getElementById('selectedCustInfo').style.display = 'none';
+  document.getElementById('noCustomerNote').style.display = 'block';
+  document.getElementById('custMedList').innerHTML = '<div class="empty-state" style="padding:20px"><div class="icon">👤</div><p>Select a customer to view their medicine list</p></div>';
+  renderBillItems();
+  document.getElementById('billNo').textContent = 'Bill #' + String(db.billCounter).padStart(3,'0');
+}
+
+// Customer search for billing
+function searchCustomer(q) {
+  const box = document.getElementById('custResults');
+  if (!q || q.length < 1) { box.style.display='none'; return; }
+  const results = db.customers.filter(c =>
+    c.name.toLowerCase().includes(q.toLowerCase()) ||
+    c.id.toLowerCase().includes(q.toLowerCase()) ||
+    (c.mobile && c.mobile.includes(q))
+  );
+  if (!results.length) { box.style.display='none'; return; }
+  box.innerHTML = results.slice(0,5).map(c => `
+    <div class="result-item" onclick="selectBillCustomer('${c.id}')">
+      <div>
+        <div class="med-name">${c.name}</div>
+        <div class="med-detail">${c.id} · ${c.mobile || 'No mobile'}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text2)">${c.meds ? c.meds.length : 0} meds</div>
+    </div>
+  `).join('');
+  box.style.display = 'block';
+}
+
+function selectBillCustomer(id) {
+  const c = db.customers.find(x => x.id === id);
+  if (!c) return;
+  selectedCustomer = c;
+  document.getElementById('custSearch').value = c.name;
+  document.getElementById('custResults').style.display = 'none';
+  document.getElementById('billCustId').textContent = c.id;
+  document.getElementById('billCustName').textContent = c.name;
+  document.getElementById('billCustMeta').textContent = `${c.mobile || ''} · ${c.address || ''} · Age: ${c.age || '?'}`;
+  document.getElementById('selectedCustInfo').style.display = 'block';
+  document.getElementById('noCustomerNote').style.display = 'none';
+  loadCustMeds();
+}
+
+function clearCustomer() {
+  selectedCustomer = null;
+  document.getElementById('custSearch').value = '';
+  document.getElementById('selectedCustInfo').style.display = 'none';
+  document.getElementById('noCustomerNote').style.display = 'block';
+  document.getElementById('custMedList').innerHTML = '<div class="empty-state" style="padding:20px"><div class="icon">👤</div><p>Select a customer to view their medicine list</p></div>';
+}
+
+function loadCustMeds() {
+  if (!selectedCustomer) return;
+  const c = selectedCustomer;
+  const meds = c.meds || [];
+  const el = document.getElementById('custMedList');
+  if (!meds.length) { el.innerHTML = '<div style="color:var(--text2);font-size:12px">No medicines recorded for this customer.</div>'; return; }
+  el.innerHTML = `
+    <div style="margin-bottom:6px;font-size:12px;color:var(--text2)">Tap to add to bill:</div>
+    ${meds.map(m => `
+      <div class="med-tag" style="cursor:pointer;margin:3px;display:inline-block" onclick="quickAddMedByName('${m.split(' ')[0]}')" title="Add ${m}">${m}</div>
+    `).join('')}
+    <div style="font-size:11px;color:var(--text3);margin-top:8px">Click medicine to quick-search & add to bill</div>
+  `;
+}
+
+function quickAddMedByName(name) {
+  const med = db.medicines.find(m => m.name.toLowerCase().includes(name.toLowerCase()));
+  if (med) addToBill(med.id);
+  else toast(`"${name}" not found in stock`, 'error');
+}
+
+// ======= STOCK =======
+function addStock() {
+  const name = document.getElementById('stkName').value.trim();
+  const brand = document.getElementById('stkBrand').value.trim();
+  const cat = document.getElementById('stkCat').value;
+  const purchase = parseFloat(document.getElementById('stkPurchase').value) || 0;
+  const mrp = parseFloat(document.getElementById('stkMRP').value) || 0;
+  const qty = parseInt(document.getElementById('stkQty').value) || 0;
+  const batch = document.getElementById('stkBatch').value.trim();
+  const expiry = document.getElementById('stkExpiry').value;
+  const rack = document.getElementById('stkRack').value.trim();
+  const alertAt = parseInt(document.getElementById('stkAlert').value) || 10;
+  const supplier = document.getElementById('stkSupplier').value.trim();
+  const supplierContact = document.getElementById('stkSupplierContact').value.trim();
+
+  if (!name) { toast('Medicine name is required!', 'error'); return; }
+  if (mrp <= 0) { toast('MRP must be greater than 0!', 'error'); return; }
+  if (qty <= 0) { toast('Quantity must be greater than 0!', 'error'); return; }
+  if (!supplier) { toast('Supplier name is required!', 'error'); return; }
+
+  // Check if exists (same name + batch)
+  const existing = db.medicines.find(m => m.name.toLowerCase() === name.toLowerCase() && m.batch === batch);
+  if (existing) {
+    existing.qty += qty;
+    existing.mrp = mrp;
+    existing.purchase = purchase;
+    existing.supplier = supplier;
+    existing.supplierContact = supplierContact;
+    toast(`Stock updated! ${name} now has ${existing.qty} units.`, 'success');
+  } else {
+    db.medicines.push({ id: genId(), name, brand, category: cat, purchase, mrp, qty, batch, expiry, rack, alertAt, supplier, supplierContact, addedOn: new Date().toISOString() });
+    toast(`${name} added to stock!`, 'success');
+  }
+  saveDB();
+  renderStock();
+  updateStockStats();
+  updateQuickStats();
+  updateSupplierSuggestions();
+  // Clear form
+  ['stkName','stkBrand','stkPurchase','stkMRP','stkQty','stkBatch','stkExpiry','stkRack','stkSupplier','stkSupplierContact'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('stkAlert').value = '10';
+}
+
+function updateSupplierSuggestions() {
+  const dl = document.getElementById('supplierSuggestions');
+  if (!dl) return;
+  const unique = [...new Set(db.medicines.map(m => m.supplier).filter(Boolean))];
+  dl.innerHTML = unique.map(s => `<option value="${s}">`).join('');
+}
+
+function renderStock() {
+  const q = (document.getElementById('stockSearch')?.value || '').toLowerCase();
+  const cat = document.getElementById('stockCatFilter')?.value || '';
+  const tbody = document.getElementById('stockTableBody');
+  let meds = db.medicines.filter(m => {
+    const matchQ = !q || m.name.toLowerCase().includes(q) || m.brand.toLowerCase().includes(q) || m.batch.toLowerCase().includes(q);
+    const matchCat = !cat || m.category === cat;
+    return matchQ && matchCat;
+  });
+  if (!meds.length) {
+    tbody.innerHTML = '<tr><td colspan="11"><div class="empty-state" style="padding:20px"><div class="icon">📦</div><p>No medicines found</p></div></td></tr>';
+    return;
+  }
+
+  const now = new Date();
+  tbody.innerHTML = meds.map((m, i) => {
+    const expiryDate = m.expiry ? new Date(m.expiry + '-01') : null;
+    const daysToExpiry = expiryDate ? Math.floor((expiryDate - now) / (1000*60*60*24)) : 9999;
+    let statusPill = '<span class="pill pill-green">OK</span>';
+    if (m.qty <= 0) statusPill = '<span class="pill pill-red">OUT</span>';
+    else if (m.qty <= m.alertAt) statusPill = '<span class="pill pill-yellow">LOW</span>';
+    if (daysToExpiry < 0) statusPill = '<span class="pill pill-red">EXPIRED</span>';
+    else if (daysToExpiry <= 30) statusPill += ' <span class="pill pill-yellow">EXP SOON</span>';
+
+    const expiryDisp = m.expiry ? m.expiry : '—';
+    const expiryColor = daysToExpiry < 30 ? 'color:var(--red)' : (daysToExpiry < 90 ? 'color:var(--accent)' : '');
+    return `
+      <tr>
+        <td class="text-mono text-dim">${i+1}</td>
+        <td><div style="font-weight:500">${m.name}</div></td>
+        <td class="text-dim">${m.brand || '—'}</td>
+        <td><span class="pill pill-blue">${m.category}</span></td>
+        <td class="text-mono text-accent">${fmt(m.mrp)}</td>
+        <td class="text-mono" style="${m.qty <= m.alertAt ? 'color:var(--red)' : 'color:var(--green)'}">${m.qty}</td>
+        <td class="text-mono text-dim">${m.batch || '—'}</td>
+        <td class="text-mono" style="${expiryColor}">${expiryDisp}</td>
+        <td class="text-dim">${m.rack || '—'}</td>
+        <td>
+          ${m.supplier ? `
+            <div style="font-size:12px;font-weight:500;color:var(--purple)">${m.supplier}</div>
+            ${m.supplierContact ? `<div style="font-size:11px;color:var(--text2);font-family:var(--mono)">${m.supplierContact}</div>` : ''}
+          ` : '<span class="text-dim" style="font-size:11px">—</span>'}
+        </td>
+        <td>${statusPill}</td>
+        <td style="white-space:nowrap">
+          ${(daysToExpiry < 90 || m.qty <= 0) && m.supplier ? `<button class="btn btn-ghost btn-sm" style="border:1px solid var(--purple);color:var(--purple);margin-bottom:3px" onclick="quickSupplierReturn('${m.id}')" title="Return to ${m.supplier}">↩️ Return</button><br>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="deleteMed('${m.id}')">🗑</button>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function deleteMed(id) {
+  if (!confirm('Delete this medicine from stock?')) return;
+  db.medicines = db.medicines.filter(m => m.id !== id);
+  saveDB(); renderStock(); updateStockStats(); updateQuickStats();
+  toast('Medicine removed from stock.', 'info');
+}
+
+function updateStockStats() {
+  const now = new Date();
+  const low = db.medicines.filter(m => m.qty > 0 && m.qty <= m.alertAt).length;
+  const out = db.medicines.filter(m => m.qty <= 0).length;
+  const expiring = db.medicines.filter(m => {
+    if (!m.expiry) return false;
+    const d = new Date(m.expiry + '-01');
+    const days = (d - now) / (1000*60*60*24);
+    return days >= 0 && days <= 30;
+  }).length;
+  const value = db.medicines.reduce((s,m) => s + m.mrp * m.qty, 0);
+  const totalAlert = db.medicines.filter(m => {
+    const d = m.expiry ? new Date(m.expiry+'-01') : null;
+    const days = d ? (d - now) / (1000*60*60*24) : 9999;
+    return m.qty <= m.alertAt || (days >= 0 && days <= 30) || (d && days < 0);
+  }).length;
+  document.getElementById('totalSKU').textContent = db.medicines.length;
+  document.getElementById('lowSKU').textContent = low + out;
+  document.getElementById('expiringSoon').textContent = expiring;
+  document.getElementById('stockValue').textContent = '₹' + value.toLocaleString('en-IN', {minimumFractionDigits:0, maximumFractionDigits:0});
+  document.getElementById('expiryBadge').textContent = totalAlert;
+}
+
+// ======= CUSTOMERS =======
+let custMedsList = [];
+let lookupCustId = null;
+
+function addMedToList() {
+  const inp = document.getElementById('newMedInput');
+  const val = inp.value.trim();
+  if (!val) return;
+  custMedsList.push(val);
+  inp.value = '';
+  renderCustMedPreview();
+}
+
+function renderCustMedPreview() {
+  const el = document.getElementById('custMedPreview');
+  el.innerHTML = custMedsList.map((m,i) => `
+    <span class="med-tag" style="cursor:pointer" onclick="removeCustMed(${i})">
+      ${m} <span style="color:var(--red)">×</span>
+    </span>
+  `).join('');
+}
+
+function removeCustMed(i) { custMedsList.splice(i,1); renderCustMedPreview(); }
+
+function registerCustomer() {
+  const name = document.getElementById('cName').value.trim();
+  if (!name) { toast('Customer name is required!', 'error'); return; }
+  const mobile = document.getElementById('cMobile').value.trim();
+  const age = document.getElementById('cAge').value;
+  const doctor = document.getElementById('cDoctor').value.trim();
+  const address = document.getElementById('cAddress').value.trim();
+  const notes = document.getElementById('cNotes').value.trim();
+
+  const cust = {
+    id: genCustId(), name, mobile, age: parseInt(age)||null, doctor, address, notes,
+    meds: [...custMedsList], visits: 0, registeredOn: new Date().toISOString()
+  };
+  db.customers.push(cust);
+  saveDB();
+  toast(`Customer registered! ID: ${cust.id}`, 'success');
+  // Clear
+  ['cName','cMobile','cAge','cDoctor','cAddress','cNotes'].forEach(id => document.getElementById(id).value = '');
+  custMedsList = [];
+  renderCustMedPreview();
+  renderCustomerTable();
+}
+
+function renderCustomerTable() {
+  const tbody = document.getElementById('custTableBody');
+  const q = (document.getElementById('custLookup')?.value || '').toLowerCase();
+  let custs = db.customers.filter(c =>
+    !q || c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q) || (c.mobile && c.mobile.includes(q))
+  );
+  if (!custs.length) {
+    tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state" style="padding:20px"><div class="icon">👤</div><p>No customers found</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = custs.map(c => `
+    <tr style="cursor:pointer" onclick="showCustLookup('${c.id}')">
+      <td class="text-mono text-accent">${c.id}</td>
+      <td style="font-weight:500">${c.name}</td>
+      <td class="text-mono text-dim">${c.mobile || '—'}</td>
+      <td>${(c.meds||[]).length} medicines</td>
+      <td class="text-mono">${c.visits || 0}</td>
+    </tr>
+  `).join('');
+}
+
+function searchCustTable(q) { renderCustomerTable(); }
+
+function showCustLookup(id) {
+  const c = db.customers.find(x => x.id === id);
+  if (!c) return;
+  lookupCustId = id;
+  document.getElementById('lookupId').textContent = c.id;
+  document.getElementById('lookupName').textContent = c.name;
+  document.getElementById('lookupMeta').textContent = `📱 ${c.mobile || '—'} · Age: ${c.age || '?'} · ${c.address || ''}`;
+  document.getElementById('lookupDoctor').textContent = c.doctor ? `👨‍⚕️ ${c.doctor}` : '';
+  document.getElementById('lookupNotes').textContent = c.notes || '—';
+  document.getElementById('lookupMeds').innerHTML = (c.meds||[]).map(m => `<span class="med-tag">${m}</span>`).join('') || '<span style="color:var(--text2);font-size:12px">No medicines recorded</span>';
+  document.getElementById('custLookupCard').style.display = 'block';
+}
+
+function editCustomer() {
+  const c = db.customers.find(x => x.id === lookupCustId);
+  if (!c) return;
+  // Pre-fill form
+  document.getElementById('cName').value = c.name;
+  document.getElementById('cMobile').value = c.mobile || '';
+  document.getElementById('cAge').value = c.age || '';
+  document.getElementById('cDoctor').value = c.doctor || '';
+  document.getElementById('cAddress').value = c.address || '';
+  document.getElementById('cNotes').value = c.notes || '';
+  custMedsList = [...(c.meds || [])];
+  renderCustMedPreview();
+  // Remove old record
+  db.customers = db.customers.filter(x => x.id !== lookupCustId);
+  saveDB(); renderCustomerTable();
+  toast('Customer loaded for editing. Save will create updated record.', 'info');
+}
+
+function deleteCustomer() {
+  if (!lookupCustId) return;
+  if (!confirm('Delete this customer record?')) return;
+  db.customers = db.customers.filter(x => x.id !== lookupCustId);
+  saveDB(); lookupCustId = null;
+  document.getElementById('custLookupCard').style.display = 'none';
+  renderCustomerTable();
+  toast('Customer deleted.', 'info');
+}
+
+// ======= DASHBOARD =======
+function renderDashboard() {
+  const todayStr = today();
+  const monthStr = thisMonth();
+  const todayBills = db.bills.filter(b => b.date.startsWith(todayStr));
+  const monthBills = db.bills.filter(b => b.date.startsWith(monthStr));
+  const todayRev = todayBills.reduce((s,b) => s+b.total, 0);
+  const monthRev = monthBills.reduce((s,b) => s+b.total, 0);
+  const totalRev = db.bills.reduce((s,b) => s+b.total, 0);
+
+  document.getElementById('dTodayRev').textContent = '₹' + todayRev.toLocaleString('en-IN');
+  document.getElementById('dTodayBills').textContent = todayBills.length;
+  document.getElementById('dMonthRev').textContent = '₹' + monthRev.toLocaleString('en-IN');
+  document.getElementById('dTotalRev').textContent = '₹' + totalRev.toLocaleString('en-IN');
+  document.getElementById('dTotalCust').textContent = db.customers.length;
+  document.getElementById('dTotalStock').textContent = db.medicines.length;
+
+  const tbody = document.getElementById('recentBillsBody');
+  const recent = [...db.bills].reverse().slice(0,20);
+  if (!recent.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state" style="padding:20px"><div class="icon">🧾</div><p>No bills yet</p></div></td></tr>'; return; }
+  tbody.innerHTML = recent.map(b => `
+    <tr>
+      <td class="text-mono text-accent">${b.id}</td>
+      <td class="text-dim text-mono" style="font-size:12px">${new Date(b.date).toLocaleString('en-IN')}</td>
+      <td>${b.customerName}</td>
+      <td class="text-dim">${b.items.length} items</td>
+      <td class="text-mono text-green">${fmt(b.total)}</td>
+      <td><span class="pill pill-blue">${b.payMode}</span></td>
+    </tr>
+  `).join('');
+}
+
+// ======= EXPIRY =======
+function renderExpiry() {
+  const now = new Date();
+  const el = document.getElementById('expiryAlerts');
+  const expired = db.medicines.filter(m => {
+    if (!m.expiry) return false;
+    const d = new Date(m.expiry + '-01');
+    return d < now;
+  });
+  const expiring30 = db.medicines.filter(m => {
+    if (!m.expiry) return false;
+    const d = new Date(m.expiry + '-01');
+    const days = (d - now) / (1000*60*60*24);
+    return days >= 0 && days <= 30;
+  });
+  const expiring90 = db.medicines.filter(m => {
+    if (!m.expiry) return false;
+    const d = new Date(m.expiry + '-01');
+    const days = (d - now) / (1000*60*60*24);
+    return days > 30 && days <= 90;
+  });
+
+  let html = '';
+  if (!expired.length && !expiring30.length && !expiring90.length) {
+    html = '<div class="empty-state"><div class="icon">✅</div><p>All medicines are well within expiry dates!</p></div>';
+  } else {
+    if (expired.length) {
+      html += `<div class="alert alert-danger" style="margin-bottom:8px">🚨 ${expired.length} EXPIRED medicines found! Remove immediately.</div>`;
+      html += '<div class="section-title">Expired (Remove from Shelf)</div><div class="tbl-wrap mb-10"><table><thead><tr><th>Medicine</th><th>Brand</th><th>Batch</th><th>Expiry</th><th>Stock</th><th>Rack</th><th>🏭 Supplier</th><th></th></tr></thead><tbody>';
+      html += expired.map(m => `<tr>
+        <td style="font-weight:500">${m.name}</td>
+        <td>${m.brand||'—'}</td>
+        <td class="text-mono">${m.batch||'—'}</td>
+        <td class="text-mono" style="color:var(--red)">${m.expiry}</td>
+        <td>${m.qty}</td>
+        <td>${m.rack||'—'}</td>
+        <td style="color:var(--purple);font-weight:500">${m.supplier || '—'}${m.supplierContact ? `<br><span style="font-size:11px;color:var(--text2);font-family:var(--mono)">${m.supplierContact}</span>` : ''}</td>
+        <td>${m.supplier ? `<button class="btn btn-ghost btn-sm" style="border:1px solid var(--purple);color:var(--purple)" onclick="quickSupplierReturn('${m.id}')">↩️ Return to Supplier</button>` : ''}</td>
+      </tr>`).join('');
+      html += '</tbody></table></div>';
+    }
+    if (expiring30.length) {
+      html += '<div class="section-title">Expiring within 30 Days</div><div class="tbl-wrap mb-10"><table><thead><tr><th>Medicine</th><th>Brand</th><th>Batch</th><th>Expiry</th><th>Stock</th></tr></thead><tbody>';
+      html += expiring30.map(m => `<tr><td style="font-weight:500">${m.name}</td><td>${m.brand||'—'}</td><td class="text-mono">${m.batch||'—'}</td><td class="text-mono" style="color:var(--accent)">${m.expiry}</td><td>${m.qty}</td></tr>`).join('');
+      html += '</tbody></table></div>';
+    }
+    if (expiring90.length) {
+      html += '<div class="section-title">Expiring within 90 Days (watch)</div><div class="tbl-wrap"><table><thead><tr><th>Medicine</th><th>Brand</th><th>Batch</th><th>Expiry</th><th>Stock</th></tr></thead><tbody>';
+      html += expiring90.map(m => `<tr><td style="font-weight:500">${m.name}</td><td>${m.brand||'—'}</td><td class="text-mono">${m.batch||'—'}</td><td class="text-mono">${m.expiry}</td><td>${m.qty}</td></tr>`).join('');
+      html += '</tbody></table></div>';
+    }
+  }
+  el.innerHTML = html;
+}
+
+// ======= RETURNS =======
+let currentReturnType = 'customer';
+let selectedReturnBill = null;
+let returnItems = []; // { medId, name, maxQty, rate, returnQty }
+let selectedSuppMed = null;
+let returnsFilter = 'all';
+
+function setReturnType(type) {
+  currentReturnType = type;
+  document.getElementById('customerReturnSection').style.display = type === 'customer' ? 'block' : 'none';
+  document.getElementById('supplierReturnSection').style.display = type === 'supplier' ? 'block' : 'none';
+  document.getElementById('retTypeCust').className = 'return-type-btn' + (type === 'customer' ? ' active-customer' : '');
+  document.getElementById('retTypeSupp').className = 'return-type-btn' + (type === 'supplier' ? ' active-supplier' : '');
+}
+
+// --- CUSTOMER RETURN ---
+function searchReturnBill(q) {
+  const box = document.getElementById('retBillResults');
+  if (!q || q.length < 1) { box.style.display = 'none'; return; }
+  const results = db.bills.filter(b =>
+    b.id.toLowerCase().includes(q.toLowerCase()) ||
+    b.customerName.toLowerCase().includes(q.toLowerCase()) ||
+    (b.customer && b.customer.toLowerCase().includes(q.toLowerCase()))
+  );
+  if (!results.length) { box.style.display = 'none'; return; }
+  box.innerHTML = results.slice(0, 6).map(b => `
+    <div class="result-item" onclick="selectReturnBill('${b.id}')">
+      <div>
+        <div class="med-name">${b.id} — ${b.customerName}</div>
+        <div class="med-detail">${new Date(b.date).toLocaleDateString('en-IN')} · ${b.items.length} items</div>
+      </div>
+      <div class="med-price">${fmt(b.total)}</div>
+    </div>
+  `).join('');
+  box.style.display = 'block';
+}
+
+function selectReturnBill(billId) {
+  const bill = db.bills.find(b => b.id === billId);
+  if (!bill) return;
+  selectedReturnBill = bill;
+  returnItems = bill.items.map(i => ({ medId: i.medId, name: i.name, brand: i.brand || '', maxQty: i.qty, rate: i.rate, returnQty: 0 }));
+  document.getElementById('retBillSearch').value = billId;
+  document.getElementById('retBillResults').style.display = 'none';
+  document.getElementById('retBillId').textContent = bill.id;
+  document.getElementById('retBillDate').textContent = new Date(bill.date).toLocaleString('en-IN');
+  document.getElementById('retBillCust').textContent = bill.customerName;
+  document.getElementById('retBillOrigTotal').textContent = fmt(bill.total);
+  document.getElementById('retBillPayMode').textContent = bill.payMode;
+  document.getElementById('retSelectedBill').style.display = 'block';
+  document.getElementById('retNoBillNote').style.display = 'none';
+  renderReturnItems();
+}
+
+function renderReturnItems() {
+  const el = document.getElementById('retItemsList');
+  if (!returnItems.length) { el.innerHTML = '<div class="text-dim" style="font-size:13px">No items in this bill.</div>'; return; }
+  el.innerHTML = returnItems.map((item, i) => `
+    <div class="return-item-row">
+      <div style="flex:1">
+        <div style="font-weight:500;font-size:13px">${item.name}</div>
+        <div class="text-dim" style="font-size:11px">${item.brand} · MRP: ${fmt(item.rate)} · Purchased: ${item.maxQty}</div>
+      </div>
+      <div class="qty-ctrl">
+        <button class="qty-btn" onclick="changeRetQty(${i}, -1)">−</button>
+        <input class="qty-inp" type="number" value="${item.returnQty}" min="0" max="${item.maxQty}" onchange="setRetQty(${i}, this.value)" style="width:48px;text-align:center">
+        <button class="qty-btn" onclick="changeRetQty(${i}, 1)">+</button>
+      </div>
+      <div class="text-mono" style="width:70px;text-align:right;font-size:13px;color:${item.returnQty > 0 ? 'var(--green)' : 'var(--text3)'}">
+        ${item.returnQty > 0 ? fmt(item.returnQty * item.rate) : '—'}
+      </div>
+    </div>
+  `).join('');
+  recalcRefund();
+}
+
+function changeRetQty(i, delta) {
+  const item = returnItems[i];
+  const newQty = item.returnQty + delta;
+  if (newQty < 0 || newQty > item.maxQty) return;
+  item.returnQty = newQty;
+  renderReturnItems();
+}
+
+function setRetQty(i, val) {
+  const item = returnItems[i];
+  let newQty = parseInt(val) || 0;
+  if (newQty < 0) newQty = 0;
+  if (newQty > item.maxQty) { toast(`Max returnable: ${item.maxQty}`, 'error'); newQty = item.maxQty; }
+  item.returnQty = newQty;
+  renderReturnItems();
+}
+
+function recalcRefund() {
+  const selected = returnItems.filter(i => i.returnQty > 0);
+  const total = selected.reduce((s, i) => s + i.returnQty * i.rate, 0);
+  document.getElementById('retRefundTotal').textContent = fmt(total);
+  document.getElementById('retItemCount').textContent = `${selected.length} item${selected.length !== 1 ? 's' : ''} selected for return`;
+}
+
+function processCustomerReturn() {
+  const selected = returnItems.filter(i => i.returnQty > 0);
+  if (!selected.length) { toast('Select at least one item to return!', 'error'); return; }
+  if (!selectedReturnBill) { toast('No bill selected!', 'error'); return; }
+
+  const refundAmt = selected.reduce((s, i) => s + i.returnQty * i.rate, 0);
+  const reason = document.getElementById('retReason').value;
+  const refundMode = document.getElementById('retRefundMode').value;
+  const notes = document.getElementById('retNotes').value;
+
+  // Update stock — add back returned qty
+  selected.forEach(item => {
+    const med = db.medicines.find(m => m.id === item.medId);
+    if (med) med.qty += item.returnQty;
+  });
+
+  // Update original bill items
+  const bill = db.bills.find(b => b.id === selectedReturnBill.id);
+  if (bill) {
+    selected.forEach(retItem => {
+      const billItem = bill.items.find(i => i.medId === retItem.medId);
+      if (billItem) billItem.qty -= retItem.returnQty;
+    });
+    bill.items = bill.items.filter(i => i.qty > 0);
+    // Recalculate bill total
+    const newSubtotal = bill.items.reduce((s, i) => s + i.qty * i.rate, 0);
+    const discAmt = newSubtotal * (bill.discount / 100);
+    const gst = (newSubtotal - discAmt) * 0.12;
+    bill.total = (newSubtotal - discAmt) + gst;
+    bill.subtotal = newSubtotal;
+    bill.hasReturn = true;
+  }
+
+  // Record return
+  const ret = {
+    id: 'RET' + String(db.returns.length + 1).padStart(4, '0'),
+    type: 'customer',
+    date: new Date().toISOString(),
+    originalBillId: selectedReturnBill.id,
+    customerName: selectedReturnBill.customerName,
+    items: selected.map(i => ({ name: i.name, returnQty: i.returnQty, rate: i.rate, amount: i.returnQty * i.rate })),
+    refundAmt,
+    reason,
+    refundMode,
+    notes
+  };
+  db.returns.push(ret);
+  saveDB();
+
+  printReturnReceipt(ret);
+  toast(`Return processed! Refund: ${fmt(refundAmt)}`, 'success');
+  clearReturn();
+  renderReturnsHistory();
+  updateReturnStats();
+  updateStockStats();
+}
+
+function printReturnReceipt(ret) {
+  const items = ret.items.map(i => `<tr><td>${i.name}</td><td style="text-align:center">${i.returnQty}</td><td style="text-align:right">₹${i.rate.toFixed(2)}</td><td style="text-align:right">₹${i.amount.toFixed(2)}</td></tr>`).join('');
+  const html = `
+    <div class="print-bill">
+      <h2>💊 Vardhaman Medical & General Stores</h2>
+      <div class="sub">Naldurg · Prop: Sachin Vasantrao Kasar</div>
+      <hr>
+      <div style="text-align:center;font-weight:bold;font-size:13px;margin:4px 0">*** RETURN RECEIPT ***</div>
+      <hr>
+      <div style="display:flex;justify-content:space-between;font-size:11px">
+        <span>Return ID: <b>${ret.id}</b></span><span>${new Date(ret.date).toLocaleString('en-IN')}</span>
+      </div>
+      <div style="font-size:11px;margin:3px 0">Orig. Bill: <b>${ret.originalBillId}</b></div>
+      <div style="font-size:11px;margin:3px 0">Customer: <b>${ret.customerName}</b></div>
+      <div style="font-size:11px;margin:3px 0">Reason: ${ret.reason}</div>
+      <hr>
+      <table><thead><tr><th style="text-align:left">Medicine</th><th>Qty</th><th>Rate</th><th>Refund</th></tr></thead>
+      <tbody>${items}</tbody></table>
+      <hr>
+      <div class="total-row" style="display:flex;justify-content:space-between">
+        <span>TOTAL REFUND</span><span>₹${ret.refundAmt.toFixed(2)}</span>
+      </div>
+      <div style="font-size:11px;margin-top:4px">Refund via: ${ret.refundMode}</div>
+      <hr>
+      <div class="footer">Thank you. Medicines returned to stock.<br>Vardhaman Medical, Naldurg.</div>
+    </div>`;
+  document.getElementById('printBillArea').innerHTML = html;
+  setTimeout(() => window.print(), 200);
+}
+
+function clearReturn() {
+  selectedReturnBill = null;
+  returnItems = [];
+  document.getElementById('retBillSearch').value = '';
+  document.getElementById('retSelectedBill').style.display = 'none';
+  document.getElementById('retNoBillNote').style.display = 'block';
+  document.getElementById('retNotes').value = '';
+}
+
+// --- SUPPLIER RETURN ---
+function searchSuppRetMed(q) {
+  const box = document.getElementById('suppRetMedResults');
+  if (!q || q.length < 2) { box.style.display = 'none'; return; }
+  const results = db.medicines.filter(m => m.name.toLowerCase().includes(q.toLowerCase()) || m.brand.toLowerCase().includes(q.toLowerCase()));
+  if (!results.length) { box.style.display = 'none'; return; }
+  box.innerHTML = results.slice(0, 6).map(m => `
+    <div class="result-item" onclick="selectSuppRetMed('${m.id}')">
+      <div>
+        <div class="med-name">${m.name}</div>
+        <div class="med-detail">${m.brand} · Stock: ${m.qty} · Batch: ${m.batch || '—'}</div>
+      </div>
+      <div class="med-price">${fmt(m.mrp)}</div>
+    </div>
+  `).join('');
+  box.style.display = 'block';
+}
+
+function quickSupplierReturn(medId) {
+  // Switch to Returns tab → Supplier Return, pre-fill medicine
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-returns').classList.add('active');
+  // Highlight Returns nav btn
+  document.querySelectorAll('.nav-btn').forEach(b => { if (b.textContent.includes('RETURNS')) b.classList.add('active'); });
+  setReturnType('supplier');
+  selectSuppRetMed(medId);
+  renderReturnsHistory(); updateReturnStats();
+  toast('Medicine pre-loaded for supplier return.', 'info');
+}
+
+function selectSuppRetMed(id) {
+  const med = db.medicines.find(m => m.id === id);
+  if (!med) return;
+  selectedSuppMed = med;
+  document.getElementById('suppRetMedSearch').value = med.name;
+  document.getElementById('suppRetMedResults').style.display = 'none';
+  document.getElementById('suppRetBatch').value = med.batch || '';
+  document.getElementById('suppRetMedName').textContent = med.name + ' — ' + (med.brand || '');
+  document.getElementById('suppRetMedStock').textContent = `Current Stock: ${med.qty} · MRP: ${fmt(med.mrp)} · Batch: ${med.batch || '—'}`;
+  document.getElementById('suppRetSelectedMed').style.display = 'block';
+  // Auto-fill supplier name and contact if available
+  if (med.supplier) {
+    document.getElementById('suppRetSupplier').value = med.supplier;
+    if (med.supplierContact) {
+      // Show contact hint
+      const hint = document.getElementById('suppRetSupplierHint');
+      if (hint) hint.textContent = `📱 ${med.supplierContact}`;
+    }
+  }
+}
+
+function processSupplierReturn() {
+  if (!selectedSuppMed) { toast('Select a medicine first!', 'error'); return; }
+  const qty = parseInt(document.getElementById('suppRetQty').value) || 0;
+  if (qty <= 0) { toast('Enter quantity to return!', 'error'); return; }
+  if (qty > selectedSuppMed.qty) { toast(`Only ${selectedSuppMed.qty} units in stock!`, 'error'); return; }
+  const supplier = document.getElementById('suppRetSupplier').value.trim() || 'Unknown Supplier';
+  const reason = document.getElementById('suppRetReason').value;
+  const notes = document.getElementById('suppRetNotes').value;
+  const batch = document.getElementById('suppRetBatch').value;
+
+  // Deduct from stock
+  const med = db.medicines.find(m => m.id === selectedSuppMed.id);
+  if (med) med.qty -= qty;
+
+  const ret = {
+    id: 'RET' + String(db.returns.length + 1).padStart(4, '0'),
+    type: 'supplier',
+    date: new Date().toISOString(),
+    supplier,
+    medName: selectedSuppMed.name,
+    medId: selectedSuppMed.id,
+    batch,
+    qty,
+    purchasePrice: selectedSuppMed.purchase || 0,
+    totalValue: qty * (selectedSuppMed.purchase || selectedSuppMed.mrp),
+    reason,
+    notes
+  };
+  db.returns.push(ret);
+  saveDB();
+  toast(`Supplier return recorded! ${qty} units of ${selectedSuppMed.name} deducted from stock.`, 'success');
+  // Clear supplier form
+  ['suppRetSupplier','suppRetMedSearch','suppRetBatch','suppRetQty','suppRetNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('suppRetSelectedMed').style.display = 'none';
+  selectedSuppMed = null;
+  renderReturnsHistory();
+  updateReturnStats();
+  updateStockStats();
+}
+
+// --- RETURNS HISTORY ---
+function filterReturns(type) {
+  returnsFilter = type;
+  ['rfAll','rfCust','rfSupp'].forEach(id => {
+    const el = document.getElementById(id);
+    el.style.border = ''; el.style.color = '';
+  });
+  const activeId = type === 'all' ? 'rfAll' : type === 'customer' ? 'rfCust' : 'rfSupp';
+  document.getElementById(activeId).style.border = '1px solid var(--accent)';
+  document.getElementById(activeId).style.color = 'var(--accent)';
+  renderReturnsHistory();
+}
+
+function renderReturnsHistory() {
+  const el = document.getElementById('returnsHistoryList');
+  let rets = [...db.returns].reverse();
+  if (returnsFilter !== 'all') rets = rets.filter(r => r.type === returnsFilter);
+  if (!rets.length) {
+    el.innerHTML = '<div class="empty-state" style="padding:20px"><div class="icon">↩️</div><p>No returns recorded yet</p></div>';
+    return;
+  }
+  el.innerHTML = rets.map(r => `
+    <div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;background:var(--bg)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span class="text-mono text-accent" style="font-weight:600">${r.id}</span>
+        <span class="pill ${r.type === 'customer' ? 'pill-blue' : 'pill-yellow'}">${r.type === 'customer' ? '👤 Customer' : '🏭 Supplier'}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2)">${new Date(r.date).toLocaleString('en-IN')}</div>
+      ${r.type === 'customer' ? `
+        <div style="font-size:13px;margin:4px 0"><b>${r.customerName}</b> · Bill: ${r.originalBillId}</div>
+        <div style="font-size:12px;color:var(--text2)">${r.items.map(i => `${i.name} ×${i.returnQty}`).join(', ')}</div>
+        <div style="display:flex;justify-content:space-between;margin-top:6px;align-items:center">
+          <span style="font-size:12px;color:var(--text2)">${r.reason} · ${r.refundMode}</span>
+          <span class="text-mono" style="color:var(--green);font-weight:600">Refund: ${fmt(r.refundAmt)}</span>
+        </div>
+      ` : `
+        <div style="font-size:13px;margin:4px 0"><b>${r.medName}</b> × ${r.qty} units</div>
+        <div style="font-size:12px;color:var(--text2)">Supplier: ${r.supplier} · Batch: ${r.batch || '—'}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px">${r.reason}</div>
+      `}
+    </div>
+  `).join('');
+}
+
+function updateReturnStats() {
+  const all = db.returns || [];
+  const custRets = all.filter(r => r.type === 'customer');
+  const suppRets = all.filter(r => r.type === 'supplier');
+  const totalRefund = custRets.reduce((s, r) => s + (r.refundAmt || 0), 0);
+  document.getElementById('retTotalCount').textContent = all.length;
+  document.getElementById('retTotalAmt').textContent = fmt(totalRefund);
+  document.getElementById('retCustCount').textContent = custRets.length;
+  document.getElementById('retSuppCount').textContent = suppRets.length;
+}
+
+// Close return bill search on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#retBillSearch') && !e.target.closest('#retBillResults')) {
+    const el = document.getElementById('retBillResults');
+    if (el) el.style.display = 'none';
+  }
+  if (!e.target.closest('#suppRetMedSearch') && !e.target.closest('#suppRetMedResults')) {
+    const el = document.getElementById('suppRetMedResults');
+    if (el) el.style.display = 'none';
+  }
+});
+
+// ======= QUICK STATS (Billing Tab) =======
+function updateQuickStats() {
+  const todayBills = db.bills.filter(b => b.date.startsWith(today()));
+  const todayRev = todayBills.reduce((s,b) => s+b.total, 0);
+  const lowStock = db.medicines.filter(m => m.qty <= m.alertAt && m.qty > 0).length;
+  document.getElementById('todayBills').textContent = todayBills.length;
+  document.getElementById('todaySales').textContent = '₹' + todayRev.toLocaleString('en-IN');
+  document.getElementById('lowStockCount').textContent = lowStock;
+  document.getElementById('totalMeds').textContent = db.medicines.length;
+  document.getElementById('billNo').textContent = 'Bill #' + String(db.billCounter).padStart(3,'0');
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', e => {
+  if (!e.target.closest('#medSearch') && !e.target.closest('#medResults')) document.getElementById('medResults').style.display = 'none';
+  if (!e.target.closest('#custSearch') && !e.target.closest('#custResults')) document.getElementById('custResults').style.display = 'none';
+});
+
+// Enter key for med input
+document.getElementById('newMedInput')?.addEventListener('keydown', e => { if (e.key === 'Enter') addMedToList(); });
+
+// ======= INIT =======
+loadDB();
+seedData();
+applyTheme();
+updateQuickStats();
+updateStockStats();
+updateReturnStats();
+updateSupplierSuggestions();
+renderBillItems();
+</script>
+</body>
+</html>
